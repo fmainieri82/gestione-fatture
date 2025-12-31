@@ -1,0 +1,96 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Permette di eseguire manualmente il workflow
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build:prod
+      
+      - name: Copy frontend to backend static
+        run: |
+          mkdir -p backend/src/main/resources/static
+          cp -r frontend/dist/frontend/browser/* backend/src/main/resources/static/
+      
+      - name: Build backend with Maven
+        working-directory: ./backend
+        run: mvn clean package -DskipTests
+      
+      - name: Get version from pom.xml
+        id: get_version
+        working-directory: ./backend
+        run: |
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Get commit message
+        id: commit_info
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}-${{ steps.commit_info.outputs.commit_sha }}
+          name: Release v${{ steps.get_version.outputs.version }} - ${{ steps.commit_info.outputs.commit_sha }}
+          body: |
+            ## 🚀 Release Automatica
+            
+            **Versione**: ${{ steps.get_version.outputs.version }}
+            **Commit**: ${{ steps.commit_info.outputs.commit_sha }}
+            **Data**: ${{ github.event.head_commit.timestamp }}
+            
+            ### 📝 Modifiche
+            ${{ steps.commit_info.outputs.commit_message }}
+            
+            ### 📦 Artefatti
+            - JAR del backend compilato
+            - Frontend compilato e integrato
+            
+            ### 🚀 Come usare
+            1. Scarica il file `fatture-backend-${{ steps.get_version.outputs.version }}.jar`
+            2. Esegui con: `java -jar fatture-backend-${{ steps.get_version.outputs.version }}.jar`
+            3. Apri il browser su: http://localhost:8080
+          files: |
+            backend/target/fatture-backend-*.jar
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+    <dontWrapJar>false</dontWrapJar>
+    <headerType>gui</headerType>
+    <jar>../backend/target/fatture-backend-1.0.0.jar</jar>
+    <outfile>../distribuzione/GestioneFatture.exe</outfile>
+    <errTitle>Gestione Fatture</errTitle>
+    <cmdLine></cmdLine>
+    <chdir>.</chdir>
+    <priority>normal</priority>
+    <downloadUrl>https://www.oracle.com/java/technologies/downloads/</downloadUrl>
+    <supportUrl></supportUrl>
+    <stayAlive>false</stayAlive>
+    <restartOnCrash>false</restartOnCrash>
+    <manifest></manifest>
+    <icon></icon>
+    <jre>
+        <path>%JAVA_HOME%;%PATH%</path>
+        <bundledJre64Bit>false</bundledJre64Bit>
+        <bundledJreAsFallback>false</bundledJreAsFallback>
+        <minVersion>17</minVersion>
+        <maxVersion></maxVersion>
+        <jdkPreference>preferJre</jdkPreference>
+        <runtimeBits>64</runtimeBits>
+    </jre>
+    <versionInfo>
+        <fileVersion>1.0.0.0</fileVersion>
+        <txtFileVersion>1.0.0</txtFileVersion>
+        <fileDescription>Gestione Fatture - Applicazione Desktop</fileDescription>
+        <copyright>2024</copyright>
+        <productVersion>1.0.0.0</productVersion>
+        <txtProductVersion>1.0.0</txtProductVersion>
+        <productName>Gestione Fatture</productName>
+        <companyName></companyName>
+        <internalName>GestioneFatture</internalName>
+        <originalFilename>GestioneFatture.exe</originalFilename>
+    </versionInfo>
+</launch4jConfig>
