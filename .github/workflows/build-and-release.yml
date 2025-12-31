@@ -72,6 +72,136 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
           echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
       
+      - name: Create distribution package
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          COMMIT_SHA="${{ steps.commit_info.outputs.commit_sha }}"
+          PACKAGE_NAME="GestioneFatture-v${VERSION}"
+          DIST_DIR="distribuzione/${PACKAGE_NAME}"
+          
+          # Crea directory di distribuzione
+          mkdir -p "${DIST_DIR}"
+          
+          # Copia il JAR
+          cp backend/target/fatture-backend-${VERSION}.jar "${DIST_DIR}/"
+          
+          # Crea script batch per Windows
+          cat > "${DIST_DIR}/GestioneFatture.bat" << 'EOF'
+          @echo off
+          echo ========================================
+          echo GESTIONE FATTURE
+          echo ========================================
+          echo.
+          echo Avvio applicazione...
+          echo.
+          cd /d "%~dp0"
+          
+          REM Verifica Java
+          where java >nul 2>&1
+          if errorlevel 1 (
+              echo ERRORE: Java non trovato!
+              echo.
+              echo Assicurati che Java 17 o superiore sia installato.
+              echo Scarica Java da: https://adoptium.net/
+              echo.
+              pause
+              exit /b 1
+          )
+          
+          REM Crea cartelle necessarie
+          if not exist "data" mkdir "data"
+          if not exist "fatture" mkdir "fatture"
+          if not exist "templates" mkdir "templates"
+          if not exist "backups" mkdir "backups"
+          
+          REM Avvia l'applicazione
+          start "" "java" -jar "fatture-backend-${VERSION}.jar"
+          
+          echo.
+          echo Applicazione avviata!
+          echo Il browser si aprirà automaticamente su http://localhost:8080
+          echo.
+          echo Per chiudere l'applicazione, chiudi questa finestra.
+          echo.
+          timeout /t 3 >nul
+          EOF
+          
+          # Sostituisci la variabile di versione nello script
+          sed -i "s/\${VERSION}/${VERSION}/g" "${DIST_DIR}/GestioneFatture.bat"
+          
+          # Crea README per la distribuzione
+          cat > "${DIST_DIR}/README.txt" << EOF
+          ========================================
+          GESTIONE FATTURE - v${VERSION}
+          ========================================
+          
+          ISTRUZIONI DI INSTALLAZIONE E USO
+          
+          1. PREREQUISITI
+             - Java 17 o superiore deve essere installato
+             - Scarica Java da: https://adoptium.net/
+             - Verifica installazione: java -version
+          
+          2. AVVIO RAPIDO
+             - Doppio click su "GestioneFatture.bat"
+             - Oppure esegui: java -jar fatture-backend-${VERSION}.jar
+             - Il browser si aprirà automaticamente su http://localhost:8080
+          
+          3. STRUTTURA CARTELLE
+             - data/        : Database (creato automaticamente)
+             - fatture/     : PDF generati
+             - templates/   : Template personalizzati
+             - backups/     : Backup database
+          
+          4. CONFIGURAZIONE
+             - Modifica application.properties per personalizzare
+             - I dati vengono salvati automaticamente nella cartella data/
+          
+          5. BACKUP
+             - Per fare backup, copia la cartella "data/"
+             - Per ripristinare, sostituisci la cartella "data/"
+          
+          6. PORTABILITÀ
+             - Puoi copiare l'intera cartella su chiavetta USB
+             - Funziona su qualsiasi PC Windows con Java installato
+          
+          ========================================
+          Versione: ${VERSION}
+          Commit: ${COMMIT_SHA}
+          ========================================
+          EOF
+          
+          # Crea script VBS per avvio senza console (opzionale)
+          cat > "${DIST_DIR}/GestioneFatture.vbs" << 'EOF'
+          Set WshShell = CreateObject("WScript.Shell")
+          Set fso = CreateObject("Scripting.FileSystemObject")
+          scriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
+          jarPath = scriptPath & "\fatture-backend-${VERSION}.jar"
+          WshShell.Run "java -jar """ & jarPath & """", 0, False
+          EOF
+          
+          sed -i "s/\${VERSION}/${VERSION}/g" "${DIST_DIR}/GestioneFatture.vbs"
+          
+          # Crea cartelle necessarie
+          mkdir -p "${DIST_DIR}/data"
+          mkdir -p "${DIST_DIR}/fatture"
+          mkdir -p "${DIST_DIR}/templates"
+          mkdir -p "${DIST_DIR}/backups"
+          
+          # Crea file .gitkeep per mantenere le cartelle
+          touch "${DIST_DIR}/data/.gitkeep"
+          touch "${DIST_DIR}/fatture/.gitkeep"
+          touch "${DIST_DIR}/templates/.gitkeep"
+          touch "${DIST_DIR}/backups/.gitkeep"
+          
+          # Crea il pacchetto ZIP
+          cd distribuzione
+          zip -r "${PACKAGE_NAME}.zip" "${PACKAGE_NAME}/"
+          cd ..
+          
+          echo "PACKAGE_PATH=distribuzione/${PACKAGE_NAME}.zip" >> $GITHUB_ENV
+          echo "Package created: distribuzione/${PACKAGE_NAME}.zip"
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -88,14 +218,30 @@ jobs:
             ${{ steps.commit_info.outputs.commit_message }}
             
             ### 📦 Artefatti
+            - **Pacchetto di distribuzione completo** (ZIP) - Pronto all'uso!
             - JAR del backend compilato
             - Frontend compilato e integrato
+            - Script di avvio per Windows
+            - README con istruzioni
             
             ### 🚀 Come usare
+            
+            **Opzione 1 - Pacchetto completo (consigliato):**
+            1. Scarica il file `GestioneFatture-v${{ steps.get_version.outputs.version }}.zip`
+            2. Estrai il contenuto in una cartella
+            3. Doppio click su `GestioneFatture.bat`
+            4. Il browser si aprirà automaticamente su http://localhost:8080
+            
+            **Opzione 2 - Solo JAR:**
             1. Scarica il file `fatture-backend-${{ steps.get_version.outputs.version }}.jar`
             2. Esegui con: `java -jar fatture-backend-${{ steps.get_version.outputs.version }}.jar`
             3. Apri il browser su: http://localhost:8080
+            
+            ### 📋 Requisiti
+            - Java 17 o superiore (scaricabile da https://adoptium.net/)
+            - Windows (per il pacchetto completo)
           files: |
+            distribuzione/GestioneFatture-v*.zip
             backend/target/fatture-backend-*.jar
           draft: false
           prerelease: false
