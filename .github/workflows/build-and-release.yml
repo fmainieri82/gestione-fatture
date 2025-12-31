@@ -10,6 +10,8 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Necessario per creare release e tag
     
     steps:
       - name: Checkout code
@@ -97,6 +99,4 @@ jobs:
             backend/target/fatture-backend-*.jar
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
