@@ -178,6 +178,33 @@ public class FatturaController {
         }
     }
     
+    // Generazione PDF con scheda di sopralluogo
+    @PostMapping("/{id}/genera-pdf-sopralluogo")
+    public ResponseEntity<Map<String, String>> generaPdfSopralluogo(@PathVariable Long id) {
+        try {
+            return fatturaService.findById(id)
+                .map(fattura -> {
+                    try {
+                        String pdfPath = pdfService.generaFatturaPdfConSopralluogo(fattura);
+                        fattura.setFilePdfPath(pdfPath);
+                        fatturaService.save(fattura);
+                        
+                        return ResponseEntity.ok(Map.of(
+                            "message", "PDF con scheda di sopralluogo generato con successo",
+                            "filePath", pdfPath
+                        ));
+                    } catch (Exception e) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of("error", "Errore nella generazione del PDF: " + e.getMessage()));
+                    }
+                })
+                .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+    
     // Download PDF
     @GetMapping("/{id}/download-pdf")
     public ResponseEntity<Resource> downloadPdf(@PathVariable Long id) {

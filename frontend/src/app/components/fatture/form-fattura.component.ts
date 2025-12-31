@@ -16,6 +16,7 @@ import { Cliente } from '../../models/cliente.model';
 import { FatturaService } from '../../services/fattura.service';
 import { ClienteService } from '../../services/cliente.service';
 import { NoteDialogComponent } from './note-dialog.component';
+import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
 
 @Component({
   selector: 'app-form-fattura',
@@ -122,6 +123,9 @@ import { NoteDialogComponent } from './note-dialog.component';
                 <div class="action-buttons-row">
                   <button mat-icon-button color="primary" (click)="apriNoteDialog(i)" matTooltip="Note">
                     <mat-icon>note</mat-icon>
+                  </button>
+                  <button mat-icon-button color="accent" (click)="apriSopralluogoDialog(i)" matTooltip="Scheda di Sopralluogo">
+                    <mat-icon>assignment</mat-icon>
                   </button>
                   <button mat-icon-button color="warn" (click)="rimuoviVoce(i)" matTooltip="Elimina">
                     <mat-icon>delete</mat-icon>
@@ -516,6 +520,24 @@ export class FormFatturaComponent implements OnInit {
     dialogRef.afterClosed().subscribe(result => {
       if (result !== undefined) {
         voce.note = result;
+      }
+    });
+  }
+
+  apriSopralluogoDialog(index: number) {
+    const voce = this.fattura.voci[index];
+    // Crea una copia della voce per il dialog
+    const voceCopy = { ...voce };
+    const dialogRef = this.dialog.open(SopralluogoDialogComponent, {
+      width: '700px',
+      maxHeight: '90vh',
+      data: voceCopy
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result !== undefined) {
+        // Aggiorna la voce originale con i dati del sopralluogo
+        Object.assign(voce, result);
       }
     });
   }

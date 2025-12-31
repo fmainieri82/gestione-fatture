@@ -81,6 +81,23 @@ export interface VoceFattura {
   codiceIva?: number;
   dataEvasione?: string;
   ordine?: number;
+  // Scheda di sopralluogo
+  cerniera?: string; // DX, SX
+  pompaScarico?: boolean; // true = SI, false = NO
+  tensione?: string; // 220M, 220T, 380T
+  allacciDistanti?: boolean;
+  ruote?: boolean;
+  smaltimento?: boolean;
+  necessarioSopralluogo?: boolean;
+  addolcitoreCorrente?: string; // Automatico, Normale
+  passaggioCm?: number;
+  scale?: string; // testo libero
+  macchinaDaSmontare?: boolean;
+  misure?: string; // testo libero (se macchina da smontare = SI)
+  gas?: string; // Metano, GPL
+  gasDistanzaCm?: number;
+  parcheggio?: boolean;
+  giornoOraConsegna?: string; // data e ora
 }
 
 export enum TipoDocumento {

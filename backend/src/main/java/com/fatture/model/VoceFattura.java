@@ -57,6 +57,55 @@ public class VoceFattura {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
     
+    // Scheda di sopralluogo
+    @Column(name = "cerniera", length = 10)
+    private String cerniera; // DX, SX
+    
+    @Column(name = "pompa_scarico")
+    private Boolean pompaScarico; // true = SI, false = NO
+    
+    @Column(name = "tensione", length = 10)
+    private String tensione; // 220M, 220T, 380T
+    
+    @Column(name = "allacci_distanti")
+    private Boolean allacciDistanti; // true = SI, false = NO
+    
+    @Column(name = "ruote")
+    private Boolean ruote; // true = SI, false = NO
+    
+    @Column(name = "smaltimento")
+    private Boolean smaltimento; // true = SI, false = NO
+    
+    @Column(name = "necessario_sopralluogo")
+    private Boolean necessarioSopralluogo; // true = SI, false = NO
+    
+    @Column(name = "addolcitore_corrente", length = 20)
+    private String addolcitoreCorrente; // Automatico, Normale
+    
+    @Column(name = "passaggio_cm")
+    private Integer passaggioCm;
+    
+    @Column(name = "scale", columnDefinition = "TEXT")
+    private String scale; // testo libero
+    
+    @Column(name = "macchina_da_smontare")
+    private Boolean macchinaDaSmontare; // true = SI, false = NO
+    
+    @Column(name = "misure", columnDefinition = "TEXT")
+    private String misure; // testo libero (se macchina da smontare = SI)
+    
+    @Column(name = "gas", length = 10)
+    private String gas; // Metano, GPL
+    
+    @Column(name = "gas_distanza_cm")
+    private Integer gasDistanzaCm;
+    
+    @Column(name = "parcheggio")
+    private Boolean parcheggio; // true = SI, false = NO
+    
+    @Column(name = "giorno_ora_consegna")
+    private String giornoOraConsegna; // data e ora
+    
     @PrePersist
     @PreUpdate
     protected void calcolaImporto() {

@@ -47,6 +47,10 @@ export class FatturaService {
     return this.http.post(`${this.apiUrl}/${id}/genera-pdf`, {});
   }
 
+  generaPdfSopralluogo(id: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/${id}/genera-pdf-sopralluogo`, {});
+  }
+
   downloadPdf(id: number): void {
     window.open(`${this.apiUrl}/${id}/download-pdf`, '_blank');
   }

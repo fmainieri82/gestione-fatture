@@ -97,6 +97,38 @@ public class PdfService {
         return filePath;
     }
     
+    public String generaFatturaPdfConSopralluogo(Fattura fattura) throws Exception {
+        // Crea directory se non esiste
+        Path dirPath = Paths.get(outputPath);
+        if (!Files.exists(dirPath)) {
+            Files.createDirectories(dirPath);
+        }
+        
+        // Nome file
+        String fileName = String.format("%s_%s_SOPRALLUOGO.pdf", 
+            fattura.getTipoDocumento().name(),
+            fattura.getNumeroDocumento().replace("/", "_"));
+        String filePath = outputPath + fileName;
+        
+        // Crea documento
+        Document document = new Document(PageSize.A4, 30, 30, 30, 30);
+        PdfWriter.getInstance(document, new FileOutputStream(filePath));
+        
+        document.open();
+        
+        // Aggiungi contenuto (stesso del PDF normale)
+        aggiungiHeaderAzienda(document, fattura);
+        aggiungiTitoloDocumento(document, fattura);
+        aggiungiDatiCliente(document, fattura);
+        aggiungiInfoDocumento(document, fattura);
+        aggiungiTabellaVociConSopralluogo(document, fattura);
+        aggiungiTotali(document, fattura);
+        
+        document.close();
+        
+        return filePath;
+    }
+    
     private void aggiungiHeaderAzienda(Document document, Fattura fattura) throws DocumentException {
         PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
@@ -430,6 +462,263 @@ public class PdfService {
         
         document.add(table);
         document.add(new Paragraph(" "));
+    }
+    
+    private void aggiungiTabellaVociConSopralluogo(Document document, Fattura fattura) throws DocumentException {
+        PdfPTable table = new PdfPTable(7);
+        table.setWidthPercentage(100);
+        table.setWidths(new float[]{30, 8, 8, 12, 12, 8, 22});
+        table.setLockedWidth(false);
+
+        // Headers
+        PdfPCell header1 = new PdfPCell(new Phrase("Descrizione merce o servizio", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header1);
+        header1.setHorizontalAlignment(Element.ALIGN_LEFT);
+        table.addCell(header1);
+        
+        PdfPCell header2 = new PdfPCell(new Phrase("U.M.", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header2);
+        header2.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header2);
+        
+        PdfPCell header3 = new PdfPCell(new Phrase("Quantità", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header3);
+        header3.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header3);
+        
+        PdfPCell header4 = new PdfPCell(new Phrase("Prezzo", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header4);
+        header4.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header4);
+        
+        PdfPCell header5 = new PdfPCell(new Phrase("Importo", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header5);
+        header5.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header5);
+        
+        PdfPCell header6 = new PdfPCell(new Phrase("C.I.", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header6);
+        header6.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header6);
+        
+        PdfPCell header7 = new PdfPCell(new Phrase("Evasione", FONT_SMALL));
+        styleHeaderCellNoVerticalBorders(header7);
+        header7.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(header7);
+    
+        // Voci
+        String dataEvasione = fattura.getDataDocumento() != null 
+            ? fattura.getDataDocumento().format(dateFormatter) 
+            : "";
+        
+        for (VoceFattura voce : fattura.getVoci()) {
+            boolean hasNote = voce.getNote() != null && !voce.getNote().trim().isEmpty();
+            boolean hasSopralluogo = hasDatiSopralluogo(voce);
+            
+            // Descrizione (può essere multi-linea)
+            String descrizioneCompleta = voce.getDescrizione();
+            if (voce.getDettagliTecnici() != null && !voce.getDettagliTecnici().isEmpty()) {
+                descrizioneCompleta += "\n" + voce.getDettagliTecnici();
+            }
+            
+            PdfPCell descCell = new PdfPCell(new Phrase(descrizioneCompleta, FONT_SMALL));
+            descCell.setPadding(5);
+            descCell.setBorderWidthTop(1.0f);
+            descCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            descCell.setBorderWidthLeft(0);
+            descCell.setBorderWidthRight(0);
+            descCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                descCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            descCell.setBackgroundColor(BaseColor.WHITE);
+            table.addCell(descCell);
+            
+            // Celle dati
+            PdfPCell umCell = new PdfPCell(new Phrase(voce.getUnitaMisura(), FONT_SMALL));
+            umCell.setPadding(5);
+            umCell.setBorderWidthTop(1.0f);
+            umCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            umCell.setBorderWidthLeft(0);
+            umCell.setBorderWidthRight(0);
+            umCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                umCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            umCell.setBackgroundColor(BaseColor.WHITE);
+            umCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(umCell);
+            
+            PdfPCell qtyCell = new PdfPCell(new Phrase(formatNumber(voce.getQuantita()), FONT_SMALL));
+            qtyCell.setPadding(5);
+            qtyCell.setBorderWidthTop(1.0f);
+            qtyCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            qtyCell.setBorderWidthLeft(0);
+            qtyCell.setBorderWidthRight(0);
+            qtyCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                qtyCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            qtyCell.setBackgroundColor(BaseColor.WHITE);
+            qtyCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(qtyCell);
+            
+            PdfPCell priceCell = new PdfPCell(new Phrase(formatCurrency(voce.getPrezzoUnitario()), FONT_SMALL));
+            priceCell.setPadding(5);
+            priceCell.setBorderWidthTop(1.0f);
+            priceCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            priceCell.setBorderWidthLeft(0);
+            priceCell.setBorderWidthRight(0);
+            priceCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                priceCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            priceCell.setBackgroundColor(BaseColor.WHITE);
+            priceCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(priceCell);
+            
+            PdfPCell importoCell = new PdfPCell(new Phrase(formatCurrency(voce.getImporto()), FONT_SMALL));
+            importoCell.setPadding(5);
+            importoCell.setBorderWidthTop(1.0f);
+            importoCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            importoCell.setBorderWidthLeft(0);
+            importoCell.setBorderWidthRight(0);
+            importoCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                importoCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            importoCell.setBackgroundColor(BaseColor.WHITE);
+            importoCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(importoCell);
+            
+            PdfPCell ivaCell = new PdfPCell(new Phrase(voce.getCodiceIva() != null ? voce.getCodiceIva().toString() : "22", FONT_SMALL));
+            ivaCell.setPadding(5);
+            ivaCell.setBorderWidthTop(1.0f);
+            ivaCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            ivaCell.setBorderWidthLeft(0);
+            ivaCell.setBorderWidthRight(0);
+            ivaCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                ivaCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            ivaCell.setBackgroundColor(BaseColor.WHITE);
+            ivaCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(ivaCell);
+            
+            PdfPCell evasioneCell = new PdfPCell(new Phrase(dataEvasione, FONT_SMALL));
+            evasioneCell.setPadding(5);
+            evasioneCell.setBorderWidthTop(1.0f);
+            evasioneCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
+            evasioneCell.setBorderWidthLeft(0);
+            evasioneCell.setBorderWidthRight(0);
+            evasioneCell.setBorderColorTop(LIGHT_GRAY_BORDER);
+            if (!hasNote && !hasSopralluogo) {
+                evasioneCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
+            }
+            evasioneCell.setBackgroundColor(BaseColor.WHITE);
+            evasioneCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(evasioneCell);
+            
+            // Aggiungi riga note se presenti
+            if (hasNote) {
+                PdfPCell noteCell = new PdfPCell(new Phrase("NOTE:\n" + voce.getNote() + "\n", FONT_SMALL));
+                noteCell.setPadding(5);
+                noteCell.setPaddingLeft(20);
+                noteCell.setBorder(Rectangle.NO_BORDER);
+                noteCell.setBackgroundColor(NOTE_BACKGROUND);
+                noteCell.setColspan(7);
+                table.addCell(noteCell);
+            }
+            
+            // Aggiungi riga scheda di sopralluogo se presente
+            if (hasSopralluogo) {
+                String sopralluogoText = buildSopralluogoText(voce);
+                PdfPCell sopralluogoCell = new PdfPCell(new Phrase("SCHEDA DI SOPRALLUOGO:\n" + sopralluogoText + "\n", FONT_SMALL));
+                sopralluogoCell.setPadding(5);
+                sopralluogoCell.setPaddingLeft(20);
+                sopralluogoCell.setBorder(Rectangle.NO_BORDER);
+                sopralluogoCell.setBackgroundColor(NOTE_BACKGROUND);
+                sopralluogoCell.setColspan(7);
+                table.addCell(sopralluogoCell);
+            }
+        }
+        
+        document.add(table);
+        document.add(new Paragraph(" "));
+    }
+    
+    private boolean hasDatiSopralluogo(VoceFattura voce) {
+        return voce.getCerniera() != null || voce.getPompaScarico() != null || 
+               voce.getTensione() != null || voce.getAllacciDistanti() != null ||
+               voce.getRuote() != null || voce.getSmaltimento() != null ||
+               voce.getNecessarioSopralluogo() != null || voce.getAddolcitoreCorrente() != null ||
+               voce.getPassaggioCm() != null || voce.getScale() != null ||
+               voce.getMacchinaDaSmontare() != null || voce.getMisure() != null ||
+               voce.getGas() != null || voce.getGasDistanzaCm() != null ||
+               voce.getParcheggio() != null || voce.getGiornoOraConsegna() != null;
+    }
+    
+    private String buildSopralluogoText(VoceFattura voce) {
+        StringBuilder sb = new StringBuilder();
+        
+        if (voce.getCerniera() != null && !voce.getCerniera().isEmpty()) {
+            sb.append("Cerniera: ").append(voce.getCerniera()).append(" | ");
+        }
+        if (voce.getPompaScarico() != null) {
+            sb.append("Pompa scarico: ").append(voce.getPompaScarico() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getTensione() != null && !voce.getTensione().isEmpty()) {
+            sb.append("Tensione: ").append(voce.getTensione()).append(" | ");
+        }
+        if (voce.getAllacciDistanti() != null) {
+            sb.append("Allacci distanti: ").append(voce.getAllacciDistanti() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getRuote() != null) {
+            sb.append("Ruote: ").append(voce.getRuote() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getSmaltimento() != null) {
+            sb.append("Smaltimento: ").append(voce.getSmaltimento() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getNecessarioSopralluogo() != null) {
+            sb.append("Necessario sopralluogo: ").append(voce.getNecessarioSopralluogo() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getAddolcitoreCorrente() != null && !voce.getAddolcitoreCorrente().isEmpty()) {
+            sb.append("Addolcitore corrente: ").append(voce.getAddolcitoreCorrente()).append(" | ");
+        }
+        if (voce.getPassaggioCm() != null) {
+            sb.append("Passaggio: ").append(voce.getPassaggioCm()).append(" cm | ");
+        }
+        if (voce.getScale() != null && !voce.getScale().isEmpty()) {
+            sb.append("Scale: ").append(voce.getScale()).append(" | ");
+        }
+        if (voce.getMacchinaDaSmontare() != null) {
+            sb.append("Macchina da smontare: ").append(voce.getMacchinaDaSmontare() ? "SI" : "NO");
+            if (voce.getMacchinaDaSmontare() && voce.getMisure() != null && !voce.getMisure().isEmpty()) {
+                sb.append(" - Misure: ").append(voce.getMisure());
+            }
+            sb.append(" | ");
+        }
+        if (voce.getGas() != null && !voce.getGas().isEmpty()) {
+            sb.append("Gas: ").append(voce.getGas());
+            if (voce.getGasDistanzaCm() != null) {
+                sb.append(" (distanza: ").append(voce.getGasDistanzaCm()).append(" cm)");
+            }
+            sb.append(" | ");
+        }
+        if (voce.getParcheggio() != null) {
+            sb.append("Parcheggio: ").append(voce.getParcheggio() ? "SI" : "NO").append(" | ");
+        }
+        if (voce.getGiornoOraConsegna() != null && !voce.getGiornoOraConsegna().isEmpty()) {
+            sb.append("Giorno e ora di consegna: ").append(voce.getGiornoOraConsegna());
+        }
+        
+        // Rimuovi l'ultimo " | " se presente
+        String result = sb.toString();
+        if (result.endsWith(" | ")) {
+            result = result.substring(0, result.length() - 3);
+        }
+        
+        return result;
     }
     
     private void aggiungiTotali(Document document, Fattura fattura) throws DocumentException {

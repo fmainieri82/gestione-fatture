@@ -122,6 +122,11 @@ import { FatturaService } from '../../services/fattura.service';
                   <mat-icon>description</mat-icon>
                   PDF
                 </button>
+                <button mat-raised-button color="primary" (click)="generaPdfSopralluogo(fattura.id!)" 
+                        matTooltip="Genera PDF con Scheda di Sopralluogo">
+                  <mat-icon>assignment</mat-icon>
+                  PDF + Sopralluogo
+                </button>
                 <button *ngIf="fattura.filePdfPath" 
                         mat-icon-button color="primary" 
                         (click)="downloadPdf(fattura.id!)"
@@ -292,6 +297,16 @@ export class ListaFattureComponent implements OnInit {
     this.fatturaService.generaPdf(id).subscribe(
       response => {
         alert('PDF generato con successo!');
+        this.caricaFatture();
+      },
+      error => alert('Errore generazione PDF: ' + error.error)
+    );
+  }
+
+  generaPdfSopralluogo(id: number) {
+    this.fatturaService.generaPdfSopralluogo(id).subscribe(
+      response => {
+        alert('PDF con scheda di sopralluogo generato con successo!');
         this.caricaFatture();
       },
       error => alert('Errore generazione PDF: ' + error.error)
