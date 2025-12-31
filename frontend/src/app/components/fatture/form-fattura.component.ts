@@ -93,7 +93,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
             <mat-form-field appearance="outline" class="form-field-cliente">
               <mat-label>Seleziona Cliente</mat-label>
               <mat-select [(ngModel)]="clienteSelezionatoId" (selectionChange)="selezionaCliente()">
-                <mat-option value="">-- Seleziona Cliente --</mat-option>
+                <mat-option [value]="null">-- Seleziona Cliente --</mat-option>
                 <mat-option *ngFor="let cliente of clienti" [value]="cliente.id">
                   {{ cliente.ragioneSociale }} ({{ cliente.partitaIva }})
                 </mat-option>
@@ -552,7 +552,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
 export class FormFatturaComponent implements OnInit {
   fattura: Fattura = this.inizializzaFattura();
   clienti: Cliente[] = [];
-  clienteSelezionatoId: string = '';
+  clienteSelezionatoId: number | null = null;
   fatturaId: number | null = null;
   dataDocumento: Date = new Date();
   scadenzaPagamento: Date | null = null;
@@ -598,12 +598,26 @@ export class FormFatturaComponent implements OnInit {
         
         // Imposta il cliente selezionato
         if (data.cliente && data.cliente.id) {
-          this.clienteSelezionatoId = data.cliente.id.toString();
           // Assicura che il cliente sia nella lista (potrebbe essere già presente)
           const clienteEsistente = this.clienti.find(c => c.id === data.cliente.id);
           if (!clienteEsistente && data.cliente) {
             // Se il cliente non è nella lista, aggiungilo
             this.clienti.push(data.cliente);
+          }
+          
+          // Imposta il cliente selezionato direttamente come numero
+          if (data.cliente.id !== undefined) {
+            this.clienteSelezionatoId = data.cliente.id;
+            
+            // Forza l'aggiornamento dopo che Angular ha renderizzato la lista
+            setTimeout(() => {
+              // Re-imposta per assicurarsi che il binding funzioni
+              if (data.cliente.id !== undefined) {
+                this.clienteSelezionatoId = data.cliente.id;
+                // Chiama selezionaCliente per impostare il cliente nell'oggetto fattura
+                this.selezionaCliente();
+              }
+            }, 100);
           }
         }
         
@@ -636,9 +650,13 @@ export class FormFatturaComponent implements OnInit {
   }
 
   selezionaCliente() {
-    const cliente = this.clienti.find(c => c.id === parseInt(this.clienteSelezionatoId));
-    if (cliente) {
-      this.fattura.cliente = cliente;
+    if (this.clienteSelezionatoId) {
+      const cliente = this.clienti.find(c => c.id === this.clienteSelezionatoId);
+      if (cliente) {
+        this.fattura.cliente = cliente;
+      }
+    } else {
+      this.fattura.cliente = {} as Cliente;
     }
   }
 
