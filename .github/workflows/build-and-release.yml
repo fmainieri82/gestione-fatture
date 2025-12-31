@@ -83,10 +83,17 @@ jobs:
         run: |
           $commitMsg = git log -1 --pretty=%B
           $commitSha = git rev-parse --short HEAD
-          Write-Host "commit_message<<EOF" >> $env:GITHUB_OUTPUT
-          Write-Host $commitMsg >> $env:GITHUB_OUTPUT
-          Write-Host "EOF" >> $env:GITHUB_OUTPUT
-          Write-Host "commit_sha=$commitSha" >> $env:GITHUB_OUTPUT
+          
+          # Verifica che il commit SHA sia valido
+          if ([string]::IsNullOrWhiteSpace($commitSha)) {
+              $commitSha = $env:GITHUB_SHA.Substring(0, 7)
+          }
+          
+          Write-Host "Commit SHA: $commitSha"
+          echo "commit_message<<EOF" >> $env:GITHUB_OUTPUT
+          echo $commitMsg >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+          echo "commit_sha=$commitSha" >> $env:GITHUB_OUTPUT
       
       - name: Create Windows executable with jpackage
         shell: pwsh
@@ -233,14 +240,14 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}-${{ steps.commit_info.outputs.commit_sha }}
-          name: Release v${{ steps.get_version.outputs.version }} - ${{ steps.commit_info.outputs.commit_sha }}
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
           body: |
             ## 🚀 Release Automatica
             
             **Versione**: ${{ steps.get_version.outputs.version }}
-            **Commit**: ${{ steps.commit_info.outputs.commit_sha }}
-            **Data**: ${{ github.event.head_commit.timestamp }}
+            **Commit**: ${{ steps.commit_info.outputs.commit_sha || github.sha }}
+            **Data**: ${{ github.event.head_commit.timestamp || github.event.repository.pushed_at }}
             
             ### 📝 Modifiche
             ${{ steps.commit_info.outputs.commit_message }}
