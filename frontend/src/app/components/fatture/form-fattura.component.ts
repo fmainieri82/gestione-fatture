@@ -168,21 +168,59 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       </div>
 
       <div class="form-section totali-section">
-        <h3 class="totali-title">Totali</h3>
+        <h3 class="totali-title">Totali e Spese</h3>
         <div class="totali-box">
           <div class="totale-row">
-            <span>Imponibile:</span>
+            <span>Totale righe:</span>
             <strong>€ {{ calcolaImponibile() | number:'1.2-2' }}</strong>
           </div>
           <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Sconti/Magg. (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.scontiMaggiori" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
               <mat-label>IVA %</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.aliquotaIva" (change)="ricalcolaTotali()">
             </mat-form-field>
           </div>
           <div class="totale-row">
+            <span>Imponibile Scontato:</span>
+            <strong>€ {{ calcolaImponibileScontato() | number:'1.2-2' }}</strong>
+          </div>
+          <div class="totale-row">
             <span>IVA:</span>
             <strong>€ {{ calcolaIva() | number:'1.2-2' }}</strong>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Spese Trasporto (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.speseTrasporto" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Acconto Versato (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.accontoVersato" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Spese Incasso (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.speseIncasso" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Spese Imballo (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.speseImballo" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
+          </div>
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Bollo (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.bollo" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Ritenuta (€)</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.ritenuta" (change)="ricalcolaTotali()" step="0.01">
+            </mat-form-field>
           </div>
           <div class="totale-row totale-finale">
             <span>TOTALE DOCUMENTO:</span>
@@ -221,7 +259,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               <td>
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Scadenza</mat-label>
-                  <input matInput [matDatepicker]="scadenzaPicker" [(ngModel)]="scadenzaPagamento" (dateChange)="onScadenzaChange($event)">
+                  <input matInput [matDatepicker]="scadenzaPicker" [(ngModel)]="scadenzaPagamento" (dateChange)="onScadenzaChange($event)" [min]="minDate">
                   <mat-datepicker-toggle matIconSuffix [for]="scadenzaPicker"></mat-datepicker-toggle>
                   <mat-datepicker #scadenzaPicker></mat-datepicker>
                 </mat-form-field>
@@ -235,6 +273,26 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="form-section">
+        <h3>Dati Spedizione</h3>
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Modalità di spedizione</mat-label>
+            <input matInput [(ngModel)]="fattura.modalitaSpedizione" placeholder="Es: Corriere espresso">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Porto</mat-label>
+            <input matInput [(ngModel)]="fattura.porto" placeholder="Es: Franco Fabbrica">
+          </mat-form-field>
+        </div>
+        <div class="form-row">
+          <mat-form-field appearance="outline" class="form-field">
+            <mat-label>Condizione di consegna</mat-label>
+            <input matInput [(ngModel)]="fattura.condizioneConsegna" placeholder="Es: Franco Fabbrica (EXW)">
+          </mat-form-field>
+        </div>
       </div>
 
       <div class="action-buttons mt-20">
@@ -288,6 +346,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     .sede-consegna-group {
       flex: 0 0 50%;
       max-width: 50%;
+      display: flex;
+      flex-direction: column;
     }
     
     .sede-consegna-group h4 {
@@ -295,6 +355,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       font-size: 14px;
       font-weight: 500;
       color: #666;
+      height: 28px;
+      line-height: 28px;
     }
     
     .sede-consegna-fields {
@@ -333,7 +395,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     }
     
     .cliente-label-spacer {
-      height: 40px;
+      height: 28px;
       margin-bottom: 12px;
     }
     
@@ -494,6 +556,7 @@ export class FormFatturaComponent implements OnInit {
   fatturaId: number | null = null;
   dataDocumento: Date = new Date();
   scadenzaPagamento: Date | null = null;
+  minDate: Date = new Date(); // Data minima per il datepicker (oggi)
   
   tipiDocumento = Object.values(TipoDocumento);
   statiDocumento = Object.values(StatoDocumento);
@@ -507,13 +570,19 @@ export class FormFatturaComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.caricaClienti();
-    
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.fatturaId = parseInt(id);
-      this.caricaFattura(this.fatturaId);
-    }
+    // Carica prima i clienti, poi la fattura (se in modifica)
+    this.clienteService.getAll().subscribe(
+      clienti => {
+        this.clienti = clienti;
+        
+        // Dopo aver caricato i clienti, carica la fattura se siamo in modifica
+        const id = this.route.snapshot.paramMap.get('id');
+        if (id) {
+          this.fatturaId = parseInt(id);
+          this.caricaFattura(this.fatturaId);
+        }
+      }
+    );
   }
 
   caricaClienti() {
@@ -526,12 +595,29 @@ export class FormFatturaComponent implements OnInit {
     this.fatturaService.getById(id).subscribe(
       data => {
         this.fattura = data;
-        this.clienteSelezionatoId = data.cliente.id?.toString() || '';
+        
+        // Imposta il cliente selezionato
+        if (data.cliente && data.cliente.id) {
+          this.clienteSelezionatoId = data.cliente.id.toString();
+          // Assicura che il cliente sia nella lista (potrebbe essere già presente)
+          const clienteEsistente = this.clienti.find(c => c.id === data.cliente.id);
+          if (!clienteEsistente && data.cliente) {
+            // Se il cliente non è nella lista, aggiungilo
+            this.clienti.push(data.cliente);
+          }
+        }
+        
+        // Imposta la data documento
         if (data.dataDocumento) {
           this.dataDocumento = new Date(data.dataDocumento);
         }
+        
+        // Imposta la data di scadenza pagamento
         if (data.scadenzaPagamentoData) {
           this.scadenzaPagamento = new Date(data.scadenzaPagamentoData);
+        } else if (data.scadenzaPagamento) {
+          // Fallback: prova anche con scadenzaPagamento se scadenzaPagamentoData non è presente
+          this.scadenzaPagamento = new Date(data.scadenzaPagamento);
         }
       }
     );
@@ -584,16 +670,34 @@ export class FormFatturaComponent implements OnInit {
     return this.fattura.voci.reduce((sum, v) => sum + (v.quantita * v.prezzoUnitario), 0);
   }
 
+  calcolaImponibileScontato(): number {
+    const totaleRighe = this.calcolaImponibile();
+    const sconti = this.fattura.scontiMaggiori || 0;
+    return totaleRighe - sconti;
+  }
+
   calcolaIva(): number {
-    return this.calcolaImponibile() * (this.fattura.aliquotaIva / 100);
+    const imponibileScontato = this.calcolaImponibileScontato();
+    return imponibileScontato * (this.fattura.aliquotaIva / 100);
   }
 
   calcolaTotale(): number {
-    return this.calcolaImponibile() + this.calcolaIva();
+    const imponibileScontato = this.calcolaImponibileScontato();
+    const iva = this.calcolaIva();
+    const speseTrasporto = this.fattura.speseTrasporto || 0;
+    const accontoVersato = this.fattura.accontoVersato || 0;
+    const speseIncasso = this.fattura.speseIncasso || 0;
+    const speseImballo = this.fattura.speseImballo || 0;
+    const bollo = this.fattura.bollo || 0;
+    const ritenuta = this.fattura.ritenuta || 0;
+    
+    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Incasso - Spese Imballo - Bollo - Ritenuta
+    return imponibileScontato + iva + speseTrasporto - accontoVersato - speseIncasso - speseImballo - bollo - ritenuta;
   }
 
   ricalcolaTotali() {
-    this.fattura.imponibile = this.calcolaImponibile();
+    this.fattura.totaleRighe = this.calcolaImponibile();
+    this.fattura.imponibile = this.calcolaImponibileScontato();
     this.fattura.importoIva = this.calcolaIva();
     this.fattura.totaleDocumento = this.calcolaTotale();
   }
@@ -719,7 +823,17 @@ export class FormFatturaComponent implements OnInit {
       cliente: {} as Cliente,
       voci: [],
       aliquotaIva: 22,
-      stato: StatoDocumento.BOZZA
+      stato: StatoDocumento.BOZZA,
+      scontiMaggiori: 0,
+      speseTrasporto: 0,
+      accontoVersato: 0,
+      speseIncasso: 0,
+      speseImballo: 0,
+      bollo: 0,
+      ritenuta: 0,
+      modalitaSpedizione: '',
+      porto: '',
+      condizioneConsegna: 'Franco Fabbrica (EXW)'
     };
   }
 }

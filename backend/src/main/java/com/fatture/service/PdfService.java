@@ -782,11 +782,17 @@ public class PdfService {
         tableTotaliRiga2.setSpacingBefore(0);
         tableTotaliRiga2.setSpacingAfter(0);
         
-        addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", formatCurrency(BigDecimal.ZERO));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese incasso", formatCurrency(BigDecimal.ZERO));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese imballo", formatCurrency(BigDecimal.ZERO));
-        addCellLabelValueVertical(tableTotaliRiga2, "Bollo", formatCurrency(BigDecimal.ZERO));
-        addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", formatCurrency(BigDecimal.ZERO));
+        BigDecimal accontoVersato = fattura.getAccontoVersato() != null ? fattura.getAccontoVersato() : BigDecimal.ZERO;
+        BigDecimal speseIncasso = fattura.getSpeseIncasso() != null ? fattura.getSpeseIncasso() : BigDecimal.ZERO;
+        BigDecimal speseImballo = fattura.getSpeseImballo() != null ? fattura.getSpeseImballo() : BigDecimal.ZERO;
+        BigDecimal bollo = fattura.getBollo() != null ? fattura.getBollo() : BigDecimal.ZERO;
+        BigDecimal ritenuta = fattura.getRitenuta() != null ? fattura.getRitenuta() : BigDecimal.ZERO;
+        
+        addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", formatCurrency(accontoVersato));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese incasso", formatCurrency(speseIncasso));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese imballo", formatCurrency(speseImballo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Bollo", formatCurrency(bollo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", formatCurrency(ritenuta));
         
         containerCell.addElement(tableTotaliRiga2);
         
@@ -891,6 +897,7 @@ public class PdfService {
         cell1.setBorderWidth(1.5f);
         cell1.setBorderColor(GRAY_BORDER);
         cell1.setBackgroundColor(BaseColor.WHITE);
+        cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
         tablePagamento.addCell(cell1);
         
         PdfPCell cell2 = new PdfPCell(new Phrase(scadenza, FONT_SMALL));
@@ -898,6 +905,7 @@ public class PdfService {
         cell2.setBorderWidth(1.5f);
         cell2.setBorderColor(GRAY_BORDER);
         cell2.setBackgroundColor(BaseColor.WHITE);
+        cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
         tablePagamento.addCell(cell2);
         
         PdfPCell cell3 = new PdfPCell(new Phrase(importoScadenzaText, FONT_SMALL));
@@ -905,6 +913,7 @@ public class PdfService {
         cell3.setBorderWidth(1.5f);
         cell3.setBorderColor(GRAY_BORDER);
         cell3.setBackgroundColor(BaseColor.WHITE);
+        cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
         tablePagamento.addCell(cell3);
         
         // Cella firma più stretta (ridotta da 80 a 50, padding ridotto)

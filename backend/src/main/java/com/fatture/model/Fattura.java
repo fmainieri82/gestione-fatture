@@ -113,6 +113,21 @@ public class Fattura {
     @Column(name = "spese_trasporto", precision = 10, scale = 2)
     private BigDecimal speseTrasporto;
     
+    @Column(name = "acconto_versato", precision = 10, scale = 2)
+    private BigDecimal accontoVersato;
+    
+    @Column(name = "spese_incasso", precision = 10, scale = 2)
+    private BigDecimal speseIncasso;
+    
+    @Column(name = "spese_imballo", precision = 10, scale = 2)
+    private BigDecimal speseImballo;
+    
+    @Column(name = "bollo", precision = 10, scale = 2)
+    private BigDecimal bollo;
+    
+    @Column(name = "ritenuta", precision = 10, scale = 2)
+    private BigDecimal ritenuta;
+    
     // Modalità spedizione
     @Column(name = "modalita_spedizione")
     private String modalitaSpedizione;
@@ -216,6 +231,22 @@ public class Fattura {
             if (speseTrasporto != null && speseTrasporto.compareTo(BigDecimal.ZERO) > 0) {
                 totale = totale.add(speseTrasporto);
             }
+            // Sottrai acconto versato e altre spese/ritenute
+            if (accontoVersato != null && accontoVersato.compareTo(BigDecimal.ZERO) > 0) {
+                totale = totale.subtract(accontoVersato);
+            }
+            if (speseIncasso != null && speseIncasso.compareTo(BigDecimal.ZERO) > 0) {
+                totale = totale.subtract(speseIncasso);
+            }
+            if (speseImballo != null && speseImballo.compareTo(BigDecimal.ZERO) > 0) {
+                totale = totale.subtract(speseImballo);
+            }
+            if (bollo != null && bollo.compareTo(BigDecimal.ZERO) > 0) {
+                totale = totale.subtract(bollo);
+            }
+            if (ritenuta != null && ritenuta.compareTo(BigDecimal.ZERO) > 0) {
+                totale = totale.subtract(ritenuta);
+            }
         } else {
             totaleRighe = BigDecimal.ZERO;
             imponibile = BigDecimal.ZERO;
@@ -230,6 +261,11 @@ public class Fattura {
         if (totale == null) totale = BigDecimal.ZERO;
         if (scontiMaggiori == null) scontiMaggiori = BigDecimal.ZERO;
         if (speseTrasporto == null) speseTrasporto = BigDecimal.ZERO;
+        if (accontoVersato == null) accontoVersato = BigDecimal.ZERO;
+        if (speseIncasso == null) speseIncasso = BigDecimal.ZERO;
+        if (speseImballo == null) speseImballo = BigDecimal.ZERO;
+        if (bollo == null) bollo = BigDecimal.ZERO;
+        if (ritenuta == null) ritenuta = BigDecimal.ZERO;
     }
     
     // Metodi alias per compatibilità

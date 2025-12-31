@@ -29,7 +29,14 @@ if not exist "frontend\dist\frontend\browser" (
     exit /b 1
 )
 if not exist "backend\src\main\resources" mkdir "backend\src\main\resources"
-if not exist "backend\src\main\resources\static" mkdir "backend\src\main\resources\static"
+REM Pulisci la cartella static se esiste
+if exist "backend\src\main\resources\static" (
+    echo Pulizia cartella static...
+    rmdir /S /Q "backend\src\main\resources\static"
+)
+REM Crea la cartella static
+mkdir "backend\src\main\resources\static"
+REM Copia i file del frontend compilato
 xcopy /E /I /Y "frontend\dist\frontend\browser\*" "backend\src\main\resources\static\"
 if errorlevel 1 (
     echo ERRORE nella copia dei file!
@@ -98,7 +105,7 @@ echo.
 echo PROSSIMI PASSI:
 echo 1. Vai nella cartella 'distribuzione\jpackage-output\GestioneFatture'
 echo 2. Doppio click su GestioneFatture.exe
-echo 3. L'applicazione si aprirà nel browser
+echo 3. L'applicazione si aprira' nel browser
 echo.
 echo IMPORTANTE: Per distribuire l'applicazione, copia l'intera cartella
 echo 'GestioneFatture' (contiene app, runtime e l'eseguibile).
