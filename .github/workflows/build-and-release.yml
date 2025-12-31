@@ -60,22 +60,22 @@ jobs:
         working-directory: ./backend
         shell: pwsh
         run: |
-          # Leggi direttamente dal pom.xml usando Select-Xml per parsing XML corretto
-          try {
-              $pom = [xml](Get-Content pom.xml -Raw)
-              $version = $pom.project.version
-              if ([string]::IsNullOrWhiteSpace($version)) {
-                  # Se la versione non è nel tag project, cerca nel tag principale
-                  $version = $pom.SelectSingleNode("//project/version").InnerText
-              }
-              $version = $version.Trim()
-              Write-Host "version=$version" >> $env:GITHUB_OUTPUT
-              Write-Host "Version: $version"
-          } catch {
-              Write-Host "ERRORE: Impossibile leggere la versione dal pom.xml"
-              Write-Host $_.Exception.Message
+          # Leggi direttamente dal pom.xml
+          $pomContent = Get-Content pom.xml -Raw
+          
+          # Cerca la versione dopo l'artifactId fatture-backend (per evitare di prendere quella del parent)
+          if ($pomContent -match '<artifactId>fatture-backend</artifactId>[\s\S]*?<version>([^<]+)</version>') {
+              $version = $matches[1].Trim()
+          } elseif ($pomContent -match '<groupId>com\.fatture</groupId>[\s\S]*?<artifactId>fatture-backend</artifactId>[\s\S]*?<version>([^<]+)</version>') {
+              $version = $matches[1].Trim()
+          } else {
+              Write-Host "ERRORE: Versione non trovata nel pom.xml"
+              Write-Host "Cercando pattern: <artifactId>fatture-backend</artifactId>...<version>X</version>"
               exit 1
           }
+          
+          Write-Host "Versione trovata: $version"
+          echo "version=$version" >> $env:GITHUB_OUTPUT
       
       - name: Get commit message
         id: commit_info
@@ -92,8 +92,14 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.get_version.outputs.version }}"
-          $jarPath = "backend\target\fatture-backend-$version.jar"
+          Write-Host "Versione ricevuta: '$version'"
           
+          if ([string]::IsNullOrWhiteSpace($version)) {
+              Write-Host "ERRORE: Versione vuota! Verifica lo step precedente."
+              exit 1
+          }
+          
+          $jarPath = "backend\target\fatture-backend-$version.jar"
           Write-Host "Creazione eseguibile Windows con jpackage..."
           Write-Host "JAR: $jarPath"
           
