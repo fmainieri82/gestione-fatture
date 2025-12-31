@@ -60,9 +60,16 @@ jobs:
         working-directory: ./backend
         shell: pwsh
         run: |
-          $version = mvn help:evaluate -Dexpression=project.version -q -DforceStdout
-          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
-          Write-Host "Version: $version"
+          # Leggi direttamente dal pom.xml per evitare problemi con Maven
+          $pomContent = Get-Content pom.xml -Raw
+          if ($pomContent -match '<version>([^<]+)</version>') {
+              $version = $matches[1].Trim()
+              Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+              Write-Host "Version: $version"
+          } else {
+              Write-Host "ERRORE: Impossibile determinare la versione dal pom.xml"
+              exit 1
+          }
       
       - name: Get commit message
         id: commit_info
