@@ -155,50 +155,50 @@ jobs:
           Copy-Item -Path $appDir\* -Destination $distDir\ -Recurse -Force
           
           # Crea README
-          $readmeContent = @"
-========================================
-GESTIONE FATTURE - v$version
-========================================
-
-ISTRUZIONI DI INSTALLAZIONE E USO
-
-1. INSTALLAZIONE
-   - Estrai il contenuto di questo ZIP in una cartella
-   - NON è necessario installare Java (incluso nel pacchetto)
-
-2. AVVIO RAPIDO
-   - Doppio click su "GestioneFatture.exe"
-   - Il browser si aprirà automaticamente su http://localhost:8080
-   - L'applicazione è completamente autonoma, non richiede Java installato
-
-3. STRUTTURA CARTELLE
-   - GestioneFatture.exe : Eseguibile principale
-   - app/                : Applicazione e risorse
-   - runtime/            : Java runtime incluso
-   - data/               : Database (creato automaticamente al primo avvio)
-   - fatture/            : PDF generati
-   - templates/          : Template personalizzati
-   - backups/            : Backup database
-
-4. CONFIGURAZIONE
-   - I dati vengono salvati automaticamente nella cartella data/
-   - Per personalizzare, modifica i file in app/
-
-5. BACKUP
-   - Per fare backup, copia la cartella "data/"
-   - Per ripristinare, sostituisci la cartella "data/"
-
-6. PORTABILITÀ
-   - Puoi copiare l'intera cartella su chiavetta USB
-   - Funziona su qualsiasi PC Windows (anche senza Java installato)
-   - L'applicazione include tutto il necessario
-
-========================================
-Versione: $version
-Commit: $commitSha
-========================================
-"@
-          $readmeContent | Out-File -FilePath "$distDir\README.txt" -Encoding UTF8
+          $readmeLines = @(
+              "========================================",
+              "GESTIONE FATTURE - v$version",
+              "========================================",
+              "",
+              "ISTRUZIONI DI INSTALLAZIONE E USO",
+              "",
+              "1. INSTALLAZIONE",
+              "   - Estrai il contenuto di questo ZIP in una cartella",
+              "   - NON è necessario installare Java (incluso nel pacchetto)",
+              "",
+              "2. AVVIO RAPIDO",
+              "   - Doppio click su `"GestioneFatture.exe`"",
+              "   - Il browser si aprirà automaticamente su http://localhost:8080",
+              "   - L'applicazione è completamente autonoma, non richiede Java installato",
+              "",
+              "3. STRUTTURA CARTELLE",
+              "   - GestioneFatture.exe : Eseguibile principale",
+              "   - app/                : Applicazione e risorse",
+              "   - runtime/            : Java runtime incluso",
+              "   - data/               : Database (creato automaticamente al primo avvio)",
+              "   - fatture/            : PDF generati",
+              "   - templates/          : Template personalizzati",
+              "   - backups/            : Backup database",
+              "",
+              "4. CONFIGURAZIONE",
+              "   - I dati vengono salvati automaticamente nella cartella data/",
+              "   - Per personalizzare, modifica i file in app/",
+              "",
+              "5. BACKUP",
+              "   - Per fare backup, copia la cartella `"data/`"",
+              "   - Per ripristinare, sostituisci la cartella `"data/`"",
+              "",
+              "6. PORTABILITÀ",
+              "   - Puoi copiare l'intera cartella su chiavetta USB",
+              "   - Funziona su qualsiasi PC Windows (anche senza Java installato)",
+              "   - L'applicazione include tutto il necessario",
+              "",
+              "========================================",
+              "Versione: $version",
+              "Commit: $commitSha",
+              "========================================"
+          )
+          $readmeLines | Out-File -FilePath "$distDir\README.txt" -Encoding UTF8
           
           # Crea il pacchetto ZIP
           Write-Host "Creazione pacchetto ZIP..."
