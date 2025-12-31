@@ -206,7 +206,16 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               <td>
                 <mat-form-field appearance="outline" class="form-field">
                   <mat-label>Tipo pagamento</mat-label>
-                  <input matInput [(ngModel)]="fattura.tipoPagamento" placeholder="Es: DA CONVENIRE, Bonifico, Assegno">
+                  <mat-select [(ngModel)]="fattura.tipoPagamento">
+                    <mat-option value="DA CONVENIRE">DA CONVENIRE</mat-option>
+                    <mat-option value="Bonifico Bancario">Bonifico Bancario</mat-option>
+                    <mat-option value="Assegno">Assegno</mat-option>
+                    <mat-option value="Contanti">Contanti</mat-option>
+                    <mat-option value="Carta di Credito">Carta di Credito</mat-option>
+                    <mat-option value="Rimessa Diretta">Rimessa Diretta</mat-option>
+                    <mat-option value="Tratta">Tratta</mat-option>
+                    <mat-option value="Rid">Rid</mat-option>
+                  </mat-select>
                 </mat-form-field>
               </td>
               <td>
@@ -277,8 +286,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     }
     
     .sede-consegna-group {
-      flex: 1;
-      min-width: 400px;
+      flex: 0 0 50%;
+      max-width: 50%;
     }
     
     .sede-consegna-group h4 {
@@ -294,6 +303,14 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       gap: 12px;
     }
     
+    .sede-consegna-fields .form-field {
+      width: 100%;
+    }
+    
+    .sede-consegna-fields .form-field ::ng-deep .mat-mdc-form-field {
+      width: 100%;
+    }
+    
     .form-row-small {
       display: flex;
       gap: 12px;
@@ -301,7 +318,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     
     .form-field-small {
       flex: 1;
-      min-width: 100px;
+      min-width: 80px;
     }
     
     .form-field-small ::ng-deep .mat-mdc-form-field {
@@ -309,7 +326,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     }
     
     .cliente-group {
-      flex: 0 0 350px;
+      flex: 0 0 50%;
+      max-width: 50%;
     }
     
     .cliente-group h4 {
