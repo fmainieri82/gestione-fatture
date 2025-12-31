@@ -31,6 +31,11 @@ export interface Fattura {
   scadenzaPagamento?: string;
   riferimentoCliente?: string;
   
+  // Sezione finale - Pagamento
+  tipoPagamento?: string; // Es: "DA CONVENIRE", "Bonifico", "Assegno", ecc.
+  scadenzaPagamentoData?: string; // Data scadenza
+  importoScadenza?: number; // Importo della scadenza
+  
   // Banca
   bancaCliente?: string;
   bancaEmittente?: string;

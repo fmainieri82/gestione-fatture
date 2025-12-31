@@ -864,15 +864,25 @@ public class PdfService {
         styleHeaderCell(header4);
         tablePagamento.addCell(header4);
         
-        // Dati
-        String tipoPagamento = fattura.getNote() != null && fattura.getNote().contains("Bonifico") 
-            ? "Bonifico Bancario" 
-            : (fattura.getNote() != null && fattura.getNote().contains("PAGAMENTO") 
-                ? fattura.getNote() 
-                : "DA CONVENIRE");
-        String scadenza = fattura.getDataDocumento() != null 
-            ? fattura.getDataDocumento().format(dateFormatter) 
-            : "";
+        // Dati - Usa i nuovi campi se disponibili, altrimenti fallback alle note
+        String tipoPagamento = fattura.getTipoPagamento() != null && !fattura.getTipoPagamento().isEmpty()
+            ? fattura.getTipoPagamento()
+            : (fattura.getNote() != null && fattura.getNote().contains("Bonifico") 
+                ? "Bonifico Bancario" 
+                : (fattura.getNote() != null && fattura.getNote().contains("PAGAMENTO") 
+                    ? fattura.getNote() 
+                    : "DA CONVENIRE"));
+        
+        String scadenza = fattura.getScadenzaPagamento() != null 
+            ? fattura.getScadenzaPagamento().format(dateFormatter) 
+            : (fattura.getDataDocumento() != null 
+                ? fattura.getDataDocumento().format(dateFormatter) 
+                : "");
+        
+        // Usa importo scadenza se disponibile, altrimenti totale documento
+        String importoScadenzaText = fattura.getImportoScadenza() != null
+            ? formatCurrency(fattura.getImportoScadenza().doubleValue())
+            : formatCurrency(totaleDocumento);
         
         PdfPCell cell1 = new PdfPCell(new Phrase(tipoPagamento, FONT_SMALL));
         cell1.setPadding(5);
@@ -888,7 +898,7 @@ public class PdfService {
         cell2.setBackgroundColor(BaseColor.WHITE);
         tablePagamento.addCell(cell2);
         
-        PdfPCell cell3 = new PdfPCell(new Phrase(formatCurrency(totaleDocumento), FONT_SMALL));
+        PdfPCell cell3 = new PdfPCell(new Phrase(importoScadenzaText, FONT_SMALL));
         cell3.setPadding(5);
         cell3.setBorderWidth(1.5f);
         cell3.setBorderColor(GRAY_BORDER);

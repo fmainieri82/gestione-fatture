@@ -123,6 +123,16 @@ public class Fattura {
     @Column(name = "condizione_consegna")
     private String condizioneConsegna;
     
+    // Sezione finale - Pagamento
+    @Column(name = "tipo_pagamento")
+    private String tipoPagamento; // Es: "DA CONVENIRE", "Bonifico", "Assegno", ecc.
+    
+    @Column(name = "scadenza_pagamento")
+    private LocalDate scadenzaPagamento;
+    
+    @Column(name = "importo_scadenza", precision = 10, scale = 2)
+    private BigDecimal importoScadenza;
+    
     @Column(updatable = false)
     private LocalDateTime creatoIl;
     

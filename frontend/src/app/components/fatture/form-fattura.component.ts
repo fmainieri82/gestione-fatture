@@ -63,17 +63,43 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       </div>
 
       <div class="form-section">
-        <h3>Cliente</h3>
-        <div class="form-row">
-          <mat-form-field appearance="outline" class="form-field-cliente">
-            <mat-label>Seleziona Cliente</mat-label>
-            <mat-select [(ngModel)]="clienteSelezionatoId" (selectionChange)="selezionaCliente()">
-              <mat-option value="">-- Seleziona Cliente --</mat-option>
-              <mat-option *ngFor="let cliente of clienti" [value]="cliente.id">
-                {{ cliente.ragioneSociale }} ({{ cliente.partitaIva }})
-              </mat-option>
-            </mat-select>
-          </mat-form-field>
+        <h3>Cliente e Sede di Consegna</h3>
+        <div class="form-row cliente-consegna-row">
+          <div class="sede-consegna-group">
+            <h4>Sede di consegna</h4>
+            <div class="sede-consegna-fields">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Indirizzo</mat-label>
+                <input matInput [(ngModel)]="fattura.sedeConsegnaIndirizzo" placeholder="Via, numero civico">
+              </mat-form-field>
+              <div class="form-row-small">
+                <mat-form-field appearance="outline" class="form-field-small">
+                  <mat-label>CAP</mat-label>
+                  <input matInput [(ngModel)]="fattura.sedeConsegnaCap" placeholder="00000">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="form-field-small">
+                  <mat-label>Città</mat-label>
+                  <input matInput [(ngModel)]="fattura.sedeConsegnaCitta" placeholder="Città">
+                </mat-form-field>
+                <mat-form-field appearance="outline" class="form-field-small">
+                  <mat-label>Provincia</mat-label>
+                  <input matInput [(ngModel)]="fattura.sedeConsegnaProvincia" placeholder="RM" maxlength="2">
+                </mat-form-field>
+              </div>
+            </div>
+          </div>
+          <div class="cliente-group">
+            <h4>Cliente</h4>
+            <mat-form-field appearance="outline" class="form-field-cliente">
+              <mat-label>Seleziona Cliente</mat-label>
+              <mat-select [(ngModel)]="clienteSelezionatoId" (selectionChange)="selezionaCliente()">
+                <mat-option value="">-- Seleziona Cliente --</mat-option>
+                <mat-option *ngFor="let cliente of clienti" [value]="cliente.id">
+                  {{ cliente.ragioneSociale }} ({{ cliente.partitaIva }})
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
         </div>
       </div>
 
@@ -165,6 +191,43 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
         </div>
       </div>
 
+      <div class="form-section">
+        <h3>Dati Pagamento</h3>
+        <table class="pagamento-table">
+          <thead>
+            <tr>
+              <th>Tipo pagamento</th>
+              <th>Scadenza</th>
+              <th>Importo scadenza</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Tipo pagamento</mat-label>
+                  <input matInput [(ngModel)]="fattura.tipoPagamento" placeholder="Es: DA CONVENIRE, Bonifico, Assegno">
+                </mat-form-field>
+              </td>
+              <td>
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Scadenza</mat-label>
+                  <input matInput [matDatepicker]="scadenzaPicker" [(ngModel)]="scadenzaPagamento" (dateChange)="onScadenzaChange($event)">
+                  <mat-datepicker-toggle matIconSuffix [for]="scadenzaPicker"></mat-datepicker-toggle>
+                  <mat-datepicker #scadenzaPicker></mat-datepicker>
+                </mat-form-field>
+              </td>
+              <td>
+                <mat-form-field appearance="outline" class="form-field">
+                  <mat-label>Importo scadenza</mat-label>
+                  <input matInput type="number" [(ngModel)]="fattura.importoScadenza" placeholder="0.00">
+                </mat-form-field>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="action-buttons mt-20">
         <button mat-raised-button color="primary" (click)="salva()">
           <mat-icon>save</mat-icon>
@@ -207,9 +270,57 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       width: 100%;
     }
     
+    .cliente-consegna-row {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+    
+    .sede-consegna-group {
+      flex: 1;
+      min-width: 400px;
+    }
+    
+    .sede-consegna-group h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+    
+    .sede-consegna-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .form-row-small {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .form-field-small {
+      flex: 1;
+      min-width: 100px;
+    }
+    
+    .form-field-small ::ng-deep .mat-mdc-form-field {
+      width: 100%;
+    }
+    
+    .cliente-group {
+      flex: 0 0 350px;
+    }
+    
+    .cliente-group h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      font-weight: 500;
+      color: #666;
+    }
+    
     .form-field-cliente {
-      width: 50%;
-      min-width: 300px;
+      width: 100%;
     }
     
     .form-field-cliente ::ng-deep .mat-mdc-form-field {
@@ -325,6 +436,29 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       color: #3f51b5;
     }
     
+    .pagamento-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+    }
+    
+    .pagamento-table th,
+    .pagamento-table td {
+      padding: 12px 8px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .pagamento-table th {
+      background: #e0e0e0;
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .pagamento-table .form-field {
+      width: 100%;
+    }
+    
     .action-buttons {
       display: flex;
       gap: 12px;
@@ -341,6 +475,7 @@ export class FormFatturaComponent implements OnInit {
   clienteSelezionatoId: string = '';
   fatturaId: number | null = null;
   dataDocumento: Date = new Date();
+  scadenzaPagamento: Date | null = null;
   
   tipiDocumento = Object.values(TipoDocumento);
   statiDocumento = Object.values(StatoDocumento);
@@ -377,6 +512,9 @@ export class FormFatturaComponent implements OnInit {
         if (data.dataDocumento) {
           this.dataDocumento = new Date(data.dataDocumento);
         }
+        if (data.scadenzaPagamentoData) {
+          this.scadenzaPagamento = new Date(data.scadenzaPagamentoData);
+        }
       }
     );
   }
@@ -384,6 +522,12 @@ export class FormFatturaComponent implements OnInit {
   onDateChange(event: any) {
     if (event.value) {
       this.fattura.dataDocumento = event.value.toISOString().split('T')[0];
+    }
+  }
+
+  onScadenzaChange(event: any) {
+    if (event.value) {
+      this.fattura.scadenzaPagamentoData = event.value.toISOString().split('T')[0];
     }
   }
 
@@ -456,6 +600,13 @@ export class FormFatturaComponent implements OnInit {
     this.fattura.ibanEmittente = 'IT97M0832703245000000002571';
     this.fattura.telefonoEmittente = '06.69375644';
     this.fattura.emailEmittente = 'info@tecnohoreca.it';
+    
+    // Mappa i campi pagamento per il backend
+    // Il backend si aspetta scadenzaPagamento come LocalDate, quindi usiamo scadenzaPagamentoData
+    if (this.fattura.scadenzaPagamentoData) {
+      // Il backend mapperà automaticamente la stringa ISO a LocalDate
+      (this.fattura as any).scadenzaPagamento = this.fattura.scadenzaPagamentoData;
+    }
 
     if (this.fatturaId) {
       this.fatturaService.update(this.fatturaId, this.fattura).subscribe(
