@@ -9,7 +9,7 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write  # Necessario per creare release e tag
     
@@ -46,9 +46,10 @@ jobs:
         run: npm run build:prod
       
       - name: Copy frontend to backend static
+        shell: pwsh
         run: |
-          mkdir -p backend/src/main/resources/static
-          cp -r frontend/dist/frontend/browser/* backend/src/main/resources/static/
+          New-Item -ItemType Directory -Force -Path backend/src/main/resources/static | Out-Null
+          Copy-Item -Path frontend/dist/frontend/browser/* -Destination backend/src/main/resources/static/ -Recurse -Force
       
       - name: Build backend with Maven
         working-directory: ./backend
@@ -57,150 +58,158 @@ jobs:
       - name: Get version from pom.xml
         id: get_version
         working-directory: ./backend
+        shell: pwsh
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          $version = mvn help:evaluate -Dexpression=project.version -q -DforceStdout
+          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $version"
       
       - name: Get commit message
         id: commit_info
+        shell: pwsh
         run: |
-          COMMIT_MSG=$(git log -1 --pretty=%B)
-          COMMIT_SHA=$(git rev-parse --short HEAD)
-          echo "commit_message<<EOF" >> $GITHUB_OUTPUT
-          echo "$COMMIT_MSG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          $commitMsg = git log -1 --pretty=%B
+          $commitSha = git rev-parse --short HEAD
+          Write-Host "commit_message<<EOF" >> $env:GITHUB_OUTPUT
+          Write-Host $commitMsg >> $env:GITHUB_OUTPUT
+          Write-Host "EOF" >> $env:GITHUB_OUTPUT
+          Write-Host "commit_sha=$commitSha" >> $env:GITHUB_OUTPUT
+      
+      - name: Create Windows executable with jpackage
+        shell: pwsh
+        run: |
+          $version = "${{ steps.get_version.outputs.version }}"
+          $jarPath = "backend\target\fatture-backend-$version.jar"
+          
+          Write-Host "Creazione eseguibile Windows con jpackage..."
+          Write-Host "JAR: $jarPath"
+          
+          # Verifica che il JAR esista
+          if (-not (Test-Path $jarPath)) {
+              Write-Host "ERRORE: JAR non trovato: $jarPath"
+              exit 1
+          }
+          
+          # Crea directory distribuzione
+          $distDir = "distribuzione\jpackage-output"
+          if (Test-Path $distDir) {
+              Write-Host "Rimozione directory esistente..."
+              Remove-Item -Path $distDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+          
+          # Esegui jpackage
+          $inputDir = "backend\target"
+          jpackage `
+              --input $inputDir `
+              --name "GestioneFatture" `
+              --main-jar "fatture-backend-$version.jar" `
+              --type app-image `
+              --dest $distDir `
+              --java-options "-Xmx512m" `
+              --java-options "-Dfile.encoding=UTF-8" `
+              --java-options "-Dspring.profiles.active=prod" `
+              --app-version $version `
+              --description "Gestione Fatture - Applicazione Desktop" `
+              --vendor "Gestione Fatture" `
+              --copyright "2024" `
+              --win-console
+          
+          if ($LASTEXITCODE -ne 0) {
+              Write-Host "ERRORE: jpackage fallito con codice $LASTEXITCODE"
+              exit 1
+          }
+          
+          # Verifica che l'eseguibile sia stato creato
+          $exePath = "$distDir\GestioneFatture\GestioneFatture.exe"
+          if (-not (Test-Path $exePath)) {
+              Write-Host "ERRORE: Eseguibile non trovato: $exePath"
+              exit 1
+          }
+          
+          Write-Host "Eseguibile creato con successo: $exePath"
       
       - name: Create distribution package
+        shell: pwsh
         run: |
-          VERSION="${{ steps.get_version.outputs.version }}"
-          COMMIT_SHA="${{ steps.commit_info.outputs.commit_sha }}"
-          PACKAGE_NAME="GestioneFatture-v${VERSION}"
-          DIST_DIR="distribuzione/${PACKAGE_NAME}"
+          $version = "${{ steps.get_version.outputs.version }}"
+          $commitSha = "${{ steps.commit_info.outputs.commit_sha }}"
+          $packageName = "GestioneFatture-v$version"
+          $appDir = "distribuzione\jpackage-output\GestioneFatture"
+          $distDir = "distribuzione\$packageName"
           
-          # Crea directory di distribuzione
-          mkdir -p "${DIST_DIR}"
+          # Verifica che l'applicazione esista
+          if (-not (Test-Path $appDir)) {
+              Write-Host "ERRORE: Applicazione non trovata: $appDir"
+              exit 1
+          }
           
-          # Copia il JAR
-          cp backend/target/fatture-backend-${VERSION}.jar "${DIST_DIR}/"
+          # Crea directory per il pacchetto
+          if (Test-Path $distDir) {
+              Remove-Item -Path $distDir -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $distDir | Out-Null
           
-          # Crea script batch per Windows
-          cat > "${DIST_DIR}/GestioneFatture.bat" << 'EOF'
-          @echo off
-          echo ========================================
-          echo GESTIONE FATTURE
-          echo ========================================
-          echo.
-          echo Avvio applicazione...
-          echo.
-          cd /d "%~dp0"
+          # Copia l'intera applicazione
+          Write-Host "Copia applicazione completa..."
+          Copy-Item -Path $appDir\* -Destination $distDir\ -Recurse -Force
           
-          REM Verifica Java
-          where java >nul 2>&1
-          if errorlevel 1 (
-              echo ERRORE: Java non trovato!
-              echo.
-              echo Assicurati che Java 17 o superiore sia installato.
-              echo Scarica Java da: https://adoptium.net/
-              echo.
-              pause
-              exit /b 1
-          )
-          
-          REM Crea cartelle necessarie
-          if not exist "data" mkdir "data"
-          if not exist "fatture" mkdir "fatture"
-          if not exist "templates" mkdir "templates"
-          if not exist "backups" mkdir "backups"
-          
-          REM Avvia l'applicazione
-          start "" "java" -jar "fatture-backend-${VERSION}.jar"
-          
-          echo.
-          echo Applicazione avviata!
-          echo Il browser si aprirà automaticamente su http://localhost:8080
-          echo.
-          echo Per chiudere l'applicazione, chiudi questa finestra.
-          echo.
-          timeout /t 3 >nul
-          EOF
-          
-          # Sostituisci la variabile di versione nello script
-          sed -i "s/\${VERSION}/${VERSION}/g" "${DIST_DIR}/GestioneFatture.bat"
-          
-          # Crea README per la distribuzione
-          cat > "${DIST_DIR}/README.txt" << EOF
-          ========================================
-          GESTIONE FATTURE - v${VERSION}
-          ========================================
-          
-          ISTRUZIONI DI INSTALLAZIONE E USO
-          
-          1. PREREQUISITI
-             - Java 17 o superiore deve essere installato
-             - Scarica Java da: https://adoptium.net/
-             - Verifica installazione: java -version
-          
-          2. AVVIO RAPIDO
-             - Doppio click su "GestioneFatture.bat"
-             - Oppure esegui: java -jar fatture-backend-${VERSION}.jar
-             - Il browser si aprirà automaticamente su http://localhost:8080
-          
-          3. STRUTTURA CARTELLE
-             - data/        : Database (creato automaticamente)
-             - fatture/     : PDF generati
-             - templates/   : Template personalizzati
-             - backups/     : Backup database
-          
-          4. CONFIGURAZIONE
-             - Modifica application.properties per personalizzare
-             - I dati vengono salvati automaticamente nella cartella data/
-          
-          5. BACKUP
-             - Per fare backup, copia la cartella "data/"
-             - Per ripristinare, sostituisci la cartella "data/"
-          
-          6. PORTABILITÀ
-             - Puoi copiare l'intera cartella su chiavetta USB
-             - Funziona su qualsiasi PC Windows con Java installato
-          
-          ========================================
-          Versione: ${VERSION}
-          Commit: ${COMMIT_SHA}
-          ========================================
-          EOF
-          
-          # Crea script VBS per avvio senza console (opzionale)
-          cat > "${DIST_DIR}/GestioneFatture.vbs" << 'EOF'
-          Set WshShell = CreateObject("WScript.Shell")
-          Set fso = CreateObject("Scripting.FileSystemObject")
-          scriptPath = fso.GetParentFolderName(WScript.ScriptFullName)
-          jarPath = scriptPath & "\fatture-backend-${VERSION}.jar"
-          WshShell.Run "java -jar """ & jarPath & """", 0, False
-          EOF
-          
-          sed -i "s/\${VERSION}/${VERSION}/g" "${DIST_DIR}/GestioneFatture.vbs"
-          
-          # Crea cartelle necessarie
-          mkdir -p "${DIST_DIR}/data"
-          mkdir -p "${DIST_DIR}/fatture"
-          mkdir -p "${DIST_DIR}/templates"
-          mkdir -p "${DIST_DIR}/backups"
-          
-          # Crea file .gitkeep per mantenere le cartelle
-          touch "${DIST_DIR}/data/.gitkeep"
-          touch "${DIST_DIR}/fatture/.gitkeep"
-          touch "${DIST_DIR}/templates/.gitkeep"
-          touch "${DIST_DIR}/backups/.gitkeep"
+          # Crea README
+          $readmeContent = @"
+========================================
+GESTIONE FATTURE - v$version
+========================================
+
+ISTRUZIONI DI INSTALLAZIONE E USO
+
+1. INSTALLAZIONE
+   - Estrai il contenuto di questo ZIP in una cartella
+   - NON è necessario installare Java (incluso nel pacchetto)
+
+2. AVVIO RAPIDO
+   - Doppio click su "GestioneFatture.exe"
+   - Il browser si aprirà automaticamente su http://localhost:8080
+   - L'applicazione è completamente autonoma, non richiede Java installato
+
+3. STRUTTURA CARTELLE
+   - GestioneFatture.exe : Eseguibile principale
+   - app/                : Applicazione e risorse
+   - runtime/            : Java runtime incluso
+   - data/               : Database (creato automaticamente al primo avvio)
+   - fatture/            : PDF generati
+   - templates/          : Template personalizzati
+   - backups/            : Backup database
+
+4. CONFIGURAZIONE
+   - I dati vengono salvati automaticamente nella cartella data/
+   - Per personalizzare, modifica i file in app/
+
+5. BACKUP
+   - Per fare backup, copia la cartella "data/"
+   - Per ripristinare, sostituisci la cartella "data/"
+
+6. PORTABILITÀ
+   - Puoi copiare l'intera cartella su chiavetta USB
+   - Funziona su qualsiasi PC Windows (anche senza Java installato)
+   - L'applicazione include tutto il necessario
+
+========================================
+Versione: $version
+Commit: $commitSha
+========================================
+"@
+          $readmeContent | Out-File -FilePath "$distDir\README.txt" -Encoding UTF8
           
           # Crea il pacchetto ZIP
-          cd distribuzione
-          zip -r "${PACKAGE_NAME}.zip" "${PACKAGE_NAME}/"
-          cd ..
+          Write-Host "Creazione pacchetto ZIP..."
+          $zipPath = "distribuzione\$packageName.zip"
+          if (Test-Path $zipPath) {
+              Remove-Item -Path $zipPath -Force
+          }
+          Compress-Archive -Path "$distDir\*" -DestinationPath $zipPath -Force
           
-          echo "PACKAGE_PATH=distribuzione/${PACKAGE_NAME}.zip" >> $GITHUB_ENV
-          echo "Package created: distribuzione/${PACKAGE_NAME}.zip"
+          Write-Host "Pacchetto creato: $zipPath"
+          Write-Host "PACKAGE_PATH=$zipPath" >> $env:GITHUB_ENV
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -218,28 +227,29 @@ jobs:
             ${{ steps.commit_info.outputs.commit_message }}
             
             ### 📦 Artefatti
-            - **Pacchetto di distribuzione completo** (ZIP) - Pronto all'uso!
-            - JAR del backend compilato
+            - **Pacchetto di distribuzione completo** (ZIP) - Pronto all'uso, **NON richiede Java installato!**
+            - Eseguibile Windows con Java runtime incluso
+            - JAR del backend compilato (per utenti avanzati)
             - Frontend compilato e integrato
-            - Script di avvio per Windows
             - README con istruzioni
             
             ### 🚀 Come usare
             
-            **Opzione 1 - Pacchetto completo (consigliato):**
+            **Pacchetto completo (consigliato - NON richiede Java):**
             1. Scarica il file `GestioneFatture-v${{ steps.get_version.outputs.version }}.zip`
             2. Estrai il contenuto in una cartella
-            3. Doppio click su `GestioneFatture.bat`
+            3. Doppio click su `GestioneFatture.exe`
             4. Il browser si aprirà automaticamente su http://localhost:8080
+            5. **NON è necessario installare Java** - tutto è incluso nel pacchetto!
             
-            **Opzione 2 - Solo JAR:**
+            **Solo JAR (richiede Java installato):**
             1. Scarica il file `fatture-backend-${{ steps.get_version.outputs.version }}.jar`
             2. Esegui con: `java -jar fatture-backend-${{ steps.get_version.outputs.version }}.jar`
             3. Apri il browser su: http://localhost:8080
             
             ### 📋 Requisiti
-            - Java 17 o superiore (scaricabile da https://adoptium.net/)
-            - Windows (per il pacchetto completo)
+            - **Pacchetto completo**: Nessun requisito! Funziona su qualsiasi PC Windows
+            - **Solo JAR**: Java 17 o superiore (scaricabile da https://adoptium.net/)
           files: |
             distribuzione/GestioneFatture-v*.zip
             backend/target/fatture-backend-*.jar
