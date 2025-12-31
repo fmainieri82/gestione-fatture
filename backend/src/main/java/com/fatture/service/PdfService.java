@@ -880,9 +880,12 @@ public class PdfService {
                 : "");
         
         // Usa importo scadenza se disponibile, altrimenti totale documento
-        String importoScadenzaText = fattura.getImportoScadenza() != null
-            ? formatCurrency(fattura.getImportoScadenza().doubleValue())
-            : formatCurrency(totaleDocumento);
+        String importoScadenzaText;
+        if (fattura.getImportoScadenza() != null) {
+            importoScadenzaText = formatCurrency(fattura.getImportoScadenza());
+        } else {
+            importoScadenzaText = formatCurrency(totaleDocumento);
+        }
         
         PdfPCell cell1 = new PdfPCell(new Phrase(tipoPagamento, FONT_SMALL));
         cell1.setPadding(5);
