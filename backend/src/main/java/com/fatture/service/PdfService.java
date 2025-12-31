@@ -63,8 +63,8 @@ public class PdfService {
         String filePath = outputPath + fileName;
         
         // Crea documento
-        Document document = new Document(PageSize.A4, 30, 30, 30, 30);
-        PdfWriter.getInstance(document, new FileOutputStream(filePath));
+        Document document = new Document(PageSize.A4, 30, 30, 30, 50);
+        PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(filePath));
         
         document.open();
         
@@ -83,14 +83,11 @@ public class PdfService {
         // Tabella voci
         aggiungiTabellaVoci(document, fattura);
         
-        // Tabella pagamento (subito dopo le voci)
-        aggiungiTabellaPagamento(document, fattura);
-        
-        // Totali
-        aggiungiTotali(document, fattura);
-        
-        // Note e condizioni
+        // Note e condizioni (prima dei totali)
         aggiungiNoteCondizioni(document, fattura);
+        
+        // Totali con pagamento (in fondo alla pagina)
+        aggiungiTotali(document, writer, fattura);
         
         // Footer
         aggiungiFooter(document, fattura);
@@ -113,9 +110,9 @@ public class PdfService {
             fattura.getNumeroDocumento().replace("/", "_"));
         String filePath = outputPath + fileName;
         
-        // Crea documento
-        Document document = new Document(PageSize.A4, 30, 30, 30, 30);
-        PdfWriter.getInstance(document, new FileOutputStream(filePath));
+        // Crea documento con margine inferiore aumentato per spazio in fondo
+        Document document = new Document(PageSize.A4, 30, 30, 30, 50);
+        PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(filePath));
         
         document.open();
         
@@ -125,8 +122,7 @@ public class PdfService {
         aggiungiDatiCliente(document, fattura);
         aggiungiInfoDocumento(document, fattura);
         aggiungiTabellaVociConSopralluogo(document, fattura);
-        aggiungiTabellaPagamento(document, fattura); // Aggiungi subito dopo le voci
-        aggiungiTotali(document, fattura);
+        aggiungiTotali(document, writer, fattura);
         
         document.close();
         
@@ -651,95 +647,6 @@ public class PdfService {
         document.add(new Paragraph(" "));
     }
     
-    private void aggiungiTabellaPagamento(Document document, Fattura fattura) throws DocumentException {
-        // Tabella pagamento e accettazione - aggiunta subito dopo la lista delle voci
-        PdfPTable tablePagamento = new PdfPTable(4);
-        tablePagamento.setWidthPercentage(100);
-        tablePagamento.setWidths(new float[]{20, 20, 20, 40}); // Firma più grande (40%)
-        tablePagamento.setLockedWidth(false);
-        tablePagamento.setSpacingBefore(10);
-        tablePagamento.setSpacingAfter(10);
-        
-        // Header con sfondo grigio scuro
-        PdfPCell header1 = new PdfPCell(new Phrase("Tipo pagamento", FONT_SMALL));
-        styleHeaderCell(header1);
-        tablePagamento.addCell(header1);
-        
-        PdfPCell header2 = new PdfPCell(new Phrase("Scadenza", FONT_SMALL));
-        styleHeaderCell(header2);
-        tablePagamento.addCell(header2);
-        
-        PdfPCell header3 = new PdfPCell(new Phrase("Importo scadenza", FONT_SMALL));
-        styleHeaderCell(header3);
-        tablePagamento.addCell(header3);
-        
-        PdfPCell header4 = new PdfPCell(new Phrase("Firma Per Accettazione", FONT_SMALL));
-        styleHeaderCell(header4);
-        tablePagamento.addCell(header4);
-        
-        // Dati - Usa i nuovi campi se disponibili, altrimenti fallback alle note
-        String tipoPagamento = fattura.getTipoPagamento() != null && !fattura.getTipoPagamento().isEmpty()
-            ? fattura.getTipoPagamento()
-            : (fattura.getNote() != null && fattura.getNote().contains("Bonifico") 
-                ? "Bonifico Bancario" 
-                : (fattura.getNote() != null && fattura.getNote().contains("PAGAMENTO") 
-                    ? fattura.getNote() 
-                    : "DA CONVENIRE"));
-        
-        String scadenza = fattura.getScadenzaPagamento() != null 
-            ? fattura.getScadenzaPagamento().format(dateFormatter) 
-            : (fattura.getDataDocumento() != null 
-                ? fattura.getDataDocumento().format(dateFormatter) 
-                : "");
-        
-        // Calcola totale documento per fallback
-        BigDecimal totaleDocumento = fattura.getTotaleDocumento() != null 
-            ? fattura.getTotaleDocumento() 
-            : BigDecimal.ZERO;
-        
-        // Usa importo scadenza se disponibile, altrimenti totale documento
-        String importoScadenzaText;
-        if (fattura.getImportoScadenza() != null) {
-            importoScadenzaText = formatCurrency(fattura.getImportoScadenza());
-        } else {
-            importoScadenzaText = formatCurrency(totaleDocumento);
-        }
-        
-        PdfPCell cell1 = new PdfPCell(new Phrase(tipoPagamento, FONT_SMALL));
-        cell1.setPadding(5);
-        cell1.setBorderWidth(1.5f);
-        cell1.setBorderColor(GRAY_BORDER);
-        cell1.setBackgroundColor(BaseColor.WHITE);
-        tablePagamento.addCell(cell1);
-        
-        PdfPCell cell2 = new PdfPCell(new Phrase(scadenza, FONT_SMALL));
-        cell2.setPadding(5);
-        cell2.setBorderWidth(1.5f);
-        cell2.setBorderColor(GRAY_BORDER);
-        cell2.setBackgroundColor(BaseColor.WHITE);
-        tablePagamento.addCell(cell2);
-        
-        PdfPCell cell3 = new PdfPCell(new Phrase(importoScadenzaText, FONT_SMALL));
-        cell3.setPadding(5);
-        cell3.setBorderWidth(1.5f);
-        cell3.setBorderColor(GRAY_BORDER);
-        cell3.setBackgroundColor(BaseColor.WHITE);
-        tablePagamento.addCell(cell3);
-        
-        // Cella firma più grande con sfondo bianco (non grigio)
-        PdfPCell cell4 = new PdfPCell(new Phrase("", FONT_SMALL));
-        cell4.setPadding(25); // Padding maggiore per spazio firma
-        cell4.setFixedHeight(80); // Altezza fissa maggiore per la firma
-        cell4.setBorderWidth(1.5f);
-        cell4.setBorderColor(GRAY_BORDER);
-        cell4.setBackgroundColor(BaseColor.WHITE); // Sfondo bianco per la firma
-        cell4.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        tablePagamento.addCell(cell4);
-        
-        document.add(tablePagamento);
-        document.add(new Paragraph(" "));
-    }
-    
     private boolean hasDatiSopralluogo(VoceFattura voce) {
         return voce.getCerniera() != null || voce.getPompaScarico() != null || 
                voce.getTensione() != null || voce.getAllacciDistanti() != null ||
@@ -814,8 +721,8 @@ public class PdfService {
         return result;
     }
     
-    private void aggiungiTotali(Document document, Fattura fattura) throws DocumentException {
-        // Non forza una nuova pagina - continua sulla stessa pagina dopo le voci e pagamento
+    private void aggiungiTotali(Document document, PdfWriter writer, Fattura fattura) throws DocumentException {
+        // Container dei totali va in fondo alla prima pagina usando posizionamento assoluto
         
         // Assicura che i valori non siano null
         BigDecimal totaleRighe = fattura.getTotaleRighe() != null ? fattura.getTotaleRighe() : BigDecimal.ZERO;
@@ -931,6 +838,87 @@ public class PdfService {
         
         containerCell.addElement(tableTotaliRigaTotale);
         
+        // TERZA SEZIONE: Tabella pagamento e accettazione (dentro il container)
+        PdfPTable tablePagamento = new PdfPTable(4);
+        tablePagamento.setWidthPercentage(100);
+        tablePagamento.setWidths(new float[]{20, 20, 20, 40}); // Firma più grande (40%)
+        tablePagamento.setLockedWidth(false);
+        tablePagamento.setSpacingBefore(0);
+        tablePagamento.setSpacingAfter(10);
+        
+        // Header con sfondo grigio scuro
+        PdfPCell header1 = new PdfPCell(new Phrase("Tipo pagamento", FONT_SMALL));
+        styleHeaderCell(header1);
+        tablePagamento.addCell(header1);
+        
+        PdfPCell header2 = new PdfPCell(new Phrase("Scadenza", FONT_SMALL));
+        styleHeaderCell(header2);
+        tablePagamento.addCell(header2);
+        
+        PdfPCell header3 = new PdfPCell(new Phrase("Importo scadenza", FONT_SMALL));
+        styleHeaderCell(header3);
+        tablePagamento.addCell(header3);
+        
+        PdfPCell header4 = new PdfPCell(new Phrase("Firma Per Accettazione", FONT_SMALL));
+        styleHeaderCell(header4);
+        tablePagamento.addCell(header4);
+        
+        // Dati - Usa i nuovi campi se disponibili, altrimenti fallback alle note
+        String tipoPagamento = fattura.getTipoPagamento() != null && !fattura.getTipoPagamento().isEmpty()
+            ? fattura.getTipoPagamento()
+            : (fattura.getNote() != null && fattura.getNote().contains("Bonifico") 
+                ? "Bonifico Bancario" 
+                : (fattura.getNote() != null && fattura.getNote().contains("PAGAMENTO") 
+                    ? fattura.getNote() 
+                    : "DA CONVENIRE"));
+        
+        String scadenza = fattura.getScadenzaPagamento() != null 
+            ? fattura.getScadenzaPagamento().format(dateFormatter) 
+            : (fattura.getDataDocumento() != null 
+                ? fattura.getDataDocumento().format(dateFormatter) 
+                : "");
+        
+        // Usa importo scadenza se disponibile, altrimenti totale documento
+        String importoScadenzaText;
+        if (fattura.getImportoScadenza() != null) {
+            importoScadenzaText = formatCurrency(fattura.getImportoScadenza());
+        } else {
+            importoScadenzaText = formatCurrency(totaleDocumento);
+        }
+        
+        PdfPCell cell1 = new PdfPCell(new Phrase(tipoPagamento, FONT_SMALL));
+        cell1.setPadding(5);
+        cell1.setBorderWidth(1.5f);
+        cell1.setBorderColor(GRAY_BORDER);
+        cell1.setBackgroundColor(BaseColor.WHITE);
+        tablePagamento.addCell(cell1);
+        
+        PdfPCell cell2 = new PdfPCell(new Phrase(scadenza, FONT_SMALL));
+        cell2.setPadding(5);
+        cell2.setBorderWidth(1.5f);
+        cell2.setBorderColor(GRAY_BORDER);
+        cell2.setBackgroundColor(BaseColor.WHITE);
+        tablePagamento.addCell(cell2);
+        
+        PdfPCell cell3 = new PdfPCell(new Phrase(importoScadenzaText, FONT_SMALL));
+        cell3.setPadding(5);
+        cell3.setBorderWidth(1.5f);
+        cell3.setBorderColor(GRAY_BORDER);
+        cell3.setBackgroundColor(BaseColor.WHITE);
+        tablePagamento.addCell(cell3);
+        
+        // Cella firma più stretta (ridotta da 80 a 50, padding ridotto)
+        PdfPCell cell4 = new PdfPCell(new Phrase("", FONT_SMALL));
+        cell4.setPadding(15); // Padding ridotto (era 25)
+        cell4.setFixedHeight(50); // Altezza ridotta (era 80) - una riga in meno
+        cell4.setBorderWidth(1.5f);
+        cell4.setBorderColor(GRAY_BORDER);
+        cell4.setBackgroundColor(BaseColor.WHITE); // Sfondo bianco per la firma
+        cell4.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        tablePagamento.addCell(cell4);
+        
+        containerCell.addElement(tablePagamento);
+        
         // QUARTA SEZIONE: Tabella spedizione - struttura come nell'immagine
         PdfPTable tableSpedizione = new PdfPTable(2);
         tableSpedizione.setWidthPercentage(100);
@@ -1001,6 +989,31 @@ public class PdfService {
         // Aggiungi la cella contenitore alla tabella
         containerTable.addCell(containerCell);
         
+        // Posiziona la tabella in fondo alla pagina
+        // Calcola lo spazio rimanente e aggiungi spazio vuoto per spingere la tabella in fondo
+        float currentY = writer.getVerticalPosition(false);
+        float pageHeight = document.getPageSize().getHeight();
+        float topMargin = document.topMargin();
+        float bottomMargin = document.bottomMargin();
+        
+        // Stima l'altezza della tabella (può essere regolata in base al contenuto)
+        float estimatedTableHeight = 350f;
+        
+        // Calcola la posizione Y target (in fondo alla pagina)
+        float targetY = bottomMargin + estimatedTableHeight;
+        
+        // Calcola lo spazio da aggiungere per spingere la tabella in fondo
+        float availableHeight = pageHeight - topMargin - bottomMargin;
+        float remainingSpace = currentY - targetY;
+        
+        // Se c'è spazio sufficiente, aggiungi uno spazio vuoto prima della tabella
+        if (remainingSpace > 10 && remainingSpace < availableHeight) {
+            Paragraph spacer = new Paragraph();
+            spacer.setSpacingBefore(remainingSpace);
+            document.add(spacer);
+        }
+        
+        // Aggiungi la tabella normalmente (ora sarà in fondo grazie allo spazio vuoto)
         document.add(containerTable);
     }
     

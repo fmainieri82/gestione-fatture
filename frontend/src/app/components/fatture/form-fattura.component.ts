@@ -89,7 +89,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
             </div>
           </div>
           <div class="cliente-group">
-            <h4>Cliente</h4>
+            <div class="cliente-label-spacer"></div>
             <mat-form-field appearance="outline" class="form-field-cliente">
               <mat-label>Seleziona Cliente</mat-label>
               <mat-select [(ngModel)]="clienteSelezionatoId" (selectionChange)="selezionaCliente()">
@@ -328,13 +328,13 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
     .cliente-group {
       flex: 0 0 50%;
       max-width: 50%;
+      display: flex;
+      flex-direction: column;
     }
     
-    .cliente-group h4 {
-      margin: 0 0 12px 0;
-      font-size: 14px;
-      font-weight: 500;
-      color: #666;
+    .cliente-label-spacer {
+      height: 40px;
+      margin-bottom: 12px;
     }
     
     .form-field-cliente {
