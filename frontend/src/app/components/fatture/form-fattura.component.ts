@@ -448,14 +448,14 @@ export class FormFatturaComponent implements OnInit {
     }
 
     // Imposta i dati azienda emittente (questi dovrebbero venire da configurazione)
-    this.fattura.ragioneSocialeEmittente = 'TUA AZIENDA SRL';
-    this.fattura.sedeLegaleEmittente = 'Via Roma 1, 00100 Roma';
-    this.fattura.sedeOperativaEmittente = 'Via Roma 1, 00100 Roma';
-    this.fattura.partitaIvaEmittente = '12345678901';
-    this.fattura.codiceUnivocoEmittente = 'ABCD123';
-    this.fattura.ibanEmittente = 'IT60X0542811101000000123456';
-    this.fattura.telefonoEmittente = '06.1234567';
-    this.fattura.emailEmittente = 'info@tuaazienda.it';
+    this.fattura.ragioneSocialeEmittente = 'TECNOHORECA SRL';
+    this.fattura.sedeLegaleEmittente = 'Via Vincenzo Manzini, 26 - 00173 Roma';
+    this.fattura.sedeOperativaEmittente = ' Via Vincenzo Manzini, 06 - 00173 Roma';
+    this.fattura.partitaIvaEmittente = '15178011001';
+    this.fattura.codiceUnivocoEmittente = 'SUBM70N';
+    this.fattura.ibanEmittente = 'IT97M0832703245000000002571';
+    this.fattura.telefonoEmittente = '06.69375644';
+    this.fattura.emailEmittente = 'info@tecnohoreca.it';
 
     if (this.fatturaId) {
       this.fatturaService.update(this.fatturaId, this.fattura).subscribe(
