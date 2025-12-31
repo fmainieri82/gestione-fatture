@@ -60,14 +60,20 @@ jobs:
         working-directory: ./backend
         shell: pwsh
         run: |
-          # Leggi direttamente dal pom.xml per evitare problemi con Maven
-          $pomContent = Get-Content pom.xml -Raw
-          if ($pomContent -match '<version>([^<]+)</version>') {
-              $version = $matches[1].Trim()
+          # Leggi direttamente dal pom.xml usando Select-Xml per parsing XML corretto
+          try {
+              $pom = [xml](Get-Content pom.xml -Raw)
+              $version = $pom.project.version
+              if ([string]::IsNullOrWhiteSpace($version)) {
+                  # Se la versione non è nel tag project, cerca nel tag principale
+                  $version = $pom.SelectSingleNode("//project/version").InnerText
+              }
+              $version = $version.Trim()
               Write-Host "version=$version" >> $env:GITHUB_OUTPUT
               Write-Host "Version: $version"
-          } else {
-              Write-Host "ERRORE: Impossibile determinare la versione dal pom.xml"
+          } catch {
+              Write-Host "ERRORE: Impossibile leggere la versione dal pom.xml"
+              Write-Host $_.Exception.Message
               exit 1
           }
       
