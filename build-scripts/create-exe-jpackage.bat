@@ -9,6 +9,12 @@ if "%CALLED_FROM_BUILD%"=="1" set SHOW_PAUSE=0
 
 set ORIGINAL_DIR=%CD%
 cd /d "%~dp0"
+REM Imposta PROJECT_ROOT (directory padre di build-scripts)
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+REM Normalizza il percorso (rimuovi eventuali \ alla fine)
+set PROJECT_ROOT=%PROJECT_ROOT:"=%
+if "%PROJECT_ROOT:~-1%"=="\" set PROJECT_ROOT=%PROJECT_ROOT:~0,-1%
 
 REM Forza Java 21 (modifica il percorso se necessario)
 set FORCED_JAVA_HOME=C:\Program Files\Java\jdk-21.0.4
@@ -231,43 +237,144 @@ if exist "%DEST_DIR%" (
     )
 )
 
-REM Percorso JAR (lo script è in build-scripts, quindi risaliamo di una directory)
-REM Usa percorso assoluto basato sulla directory dello script
-set SCRIPT_DIR=%~dp0
-set PROJECT_ROOT=%SCRIPT_DIR%..
-set JAR_PATH=%PROJECT_ROOT%\backend\target\fatture-backend-1.0.0.jar
+REM Leggi la versione dal pom.xml
+echo Lettura versione dal pom.xml...
+set VERSION=1.0.0
 
-REM Verifica anche percorsi alternativi
-if not exist "%JAR_PATH%" (
-    REM Prova percorso relativo
-    set JAR_PATH=..\backend\target\fatture-backend-1.0.0.jar
-    if not exist "%JAR_PATH%" (
-        REM Prova dalla directory corrente
-        set JAR_PATH=backend\target\fatture-backend-1.0.0.jar
-        if not exist "%JAR_PATH%" (
-            echo ERRORE: JAR non trovato!
-            echo Cercato in:
-            echo   - %PROJECT_ROOT%\backend\target\fatture-backend-1.0.0.jar
-            echo   - ..\backend\target\fatture-backend-1.0.0.jar
-            echo   - backend\target\fatture-backend-1.0.0.jar
-            echo.
-            echo Directory corrente: %CD%
-            echo Esegui prima il build del backend!
-            if "%SHOW_PAUSE%"=="1" pause
-            cd /d "%ORIGINAL_DIR%"
-            exit /b 1
-        )
+REM Trova il file pom.xml (lo script è in build-scripts, quindi risaliamo di una directory)
+set POM_FILE=..\backend\pom.xml
+if not exist "%POM_FILE%" (
+    set POM_FILE=backend\pom.xml
+    if not exist "%POM_FILE%" (
+        set POM_FILE=%PROJECT_ROOT%\backend\pom.xml
     )
 )
 
-echo JAR trovato: %JAR_PATH%
+if not exist "%POM_FILE%" (
+    echo ATTENZIONE: pom.xml non trovato, uso versione default 1.0.0
+    goto :version_done
+)
 
-REM Verifica che il JAR esista realmente nel percorso specificato
+echo File pom.xml trovato: %POM_FILE%
+
+REM Prova prima con Maven se disponibile (metodo più affidabile)
+where mvn >nul 2>&1
+if not errorlevel 1 (
+    echo Tentativo lettura versione con Maven...
+    pushd "..\backend"
+    if exist "pom.xml" (
+        for /f "tokens=*" %%v in ('mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2^>nul') do (
+            if not "%%v"=="" (
+                set VERSION=%%v
+                popd
+                goto :version_done
+            )
+        )
+    )
+    popd
+)
+
+REM Fallback: estrai la versione dal pom.xml con PowerShell (metodo più affidabile)
+echo Lettura versione dal file pom.xml con PowerShell...
+REM Usa percorso assoluto per PowerShell
+for /f "delims=" %%v in ('powershell -NoProfile -Command "$pomPath = Resolve-Path '%POM_FILE%'; $pom = [xml](Get-Content -Path $pomPath -Raw); Write-Output $pom.project.version" 2^>nul') do (
+    if not "%%v"=="" (
+        set VERSION=%%v
+        goto :version_done
+    )
+)
+
+REM Ultimo fallback: regex semplice con PowerShell
+echo Tentativo con regex...
+for /f "delims=" %%v in ('powershell -NoProfile -Command "$content = Get-Content '%POM_FILE%' -Raw; if ($content -match ''<artifactId>fatture-backend</artifactId>[\s\S]*?<version>([^<]+)</version>'') { Write-Output $matches[1] }" 2^>nul') do (
+    if not "%%v"=="" (
+        set VERSION=%%v
+        goto :version_done
+    )
+)
+
+:version_done
+REM Rimuovi eventuali caratteri non validi dalla versione
+set VERSION=%VERSION: =%
+set VERSION=%VERSION:"=%
+set VERSION=%VERSION:'=%
+echo Versione rilevata: %VERSION%
+
+REM Percorso JAR (lo script è in build-scripts, quindi risaliamo di una directory)
+set JAR_NAME=fatture-backend-%VERSION%.jar
+
+echo Cerca JAR: %JAR_NAME%
+echo Directory corrente: %CD%
+
+REM Prova prima con percorso relativo (più affidabile quando lo script è in build-scripts)
+set JAR_PATH=..\backend\target\%JAR_NAME%
+echo Verifica percorso: %JAR_PATH%
+if exist "%JAR_PATH%" (
+    echo JAR trovato in: %JAR_PATH%
+    goto :jar_found
+)
+
+REM Prova dalla directory corrente (se eseguito dalla root del progetto)
+set JAR_PATH=backend\target\%JAR_NAME%
+echo Verifica percorso: %JAR_PATH%
+if exist "%JAR_PATH%" (
+    echo JAR trovato in: %JAR_PATH%
+    goto :jar_found
+)
+
+REM Prova con percorso assoluto basato su PROJECT_ROOT
+if defined PROJECT_ROOT (
+    set JAR_PATH=%PROJECT_ROOT%\backend\target\%JAR_NAME%
+    echo Verifica percorso: %JAR_PATH%
+    if exist "%JAR_PATH%" (
+        echo JAR trovato in: %JAR_PATH%
+        goto :jar_found
+    )
+)
+
+REM Se non trovato, prova a cercare qualsiasi JAR nella directory target
+echo Cerca qualsiasi JAR nella directory target...
+if exist "..\backend\target" (
+    for %%f in ("..\backend\target\fatture-backend-*.jar") do (
+        echo JAR trovato: %%f
+        set JAR_PATH=%%f
+        goto :jar_found
+    )
+)
+
+:jar_not_found
+echo ERRORE: JAR non trovato!
+echo Cercato in:
+echo   - ..\backend\target\%JAR_NAME%
+echo   - backend\target\%JAR_NAME%
+if defined PROJECT_ROOT (
+    echo   - %PROJECT_ROOT%\backend\target\%JAR_NAME%
+)
+echo.
+echo Directory corrente: %CD%
+echo Versione cercata: %VERSION%
+echo Nome JAR: %JAR_NAME%
+echo.
+echo Verifica che:
+echo   1. Il backend sia stato compilato (mvn clean package)
+echo   2. Il JAR esista in backend\target\
+echo   3. La versione nel pom.xml corrisponda
+echo.
+if "%SHOW_PAUSE%"=="1" pause
+cd /d "%ORIGINAL_DIR%"
+endlocal
+exit /b 1
+
+:jar_found
+echo JAR trovato correttamente: %JAR_PATH%
+
+REM Verifica che il JAR esista realmente
 if not exist "%JAR_PATH%" (
     echo ERRORE: Il JAR non esiste nel percorso specificato: %JAR_PATH%
     echo Directory corrente: %CD%
     if "%SHOW_PAUSE%"=="1" pause
     cd /d "%ORIGINAL_DIR%"
+    endlocal
     exit /b 1
 )
 
@@ -296,16 +403,18 @@ echo.
 REM Crea applicazione Windows con jpackage
 REM Per Spring Boot, non serve specificare main-class se il JAR è eseguibile
 echo Esecuzione jpackage...
+echo JAR: %JAR_NAME%
+echo Versione: %VERSION%
 "%JPACKAGE_CMD%" ^
     --input "%INPUT_DIR%" ^
     --name "GestioneFatture" ^
-    --main-jar fatture-backend-1.0.0.jar ^
+    --main-jar %JAR_NAME% ^
     --type app-image ^
     --dest "%DEST_DIR%" ^
     --java-options "-Xmx512m" ^
     --java-options "-Dfile.encoding=UTF-8" ^
     --java-options "-Dspring.profiles.active=prod" ^
-    --app-version "1.0.0" ^
+    --app-version "%VERSION%" ^
     --description "Gestione Fatture - Applicazione Desktop" ^
     --vendor "Gestione Fatture" ^
     --copyright "2024" ^
