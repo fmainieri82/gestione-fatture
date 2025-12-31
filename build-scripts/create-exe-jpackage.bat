@@ -1,5 +1,14 @@
 @echo off
+setlocal enabledelayedexpansion
 echo Creazione eseguibile Windows con jpackage (Java 17+)...
+
+REM Salva la directory corrente e vai nella directory dello script
+REM Se viene chiamato da build-all.bat, NON mostrare pause
+set SHOW_PAUSE=1
+if "%CALLED_FROM_BUILD%"=="1" set SHOW_PAUSE=0
+
+set ORIGINAL_DIR=%CD%
+cd /d "%~dp0"
 
 REM Forza Java 21 (modifica il percorso se necessario)
 set FORCED_JAVA_HOME=C:\Program Files\Java\jdk-21.0.4
@@ -31,7 +40,8 @@ if errorlevel 1 (
     echo Assicurati che Java 17+ (JDK) sia installato.
     echo Imposta JAVA_HOME se hai più versioni di Java installate.
     echo.
-    pause
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
     exit /b 1
 )
 
@@ -44,7 +54,8 @@ echo Verifica versione Java...
 "%JAVA_CMD%" -version >nul 2>&1
 if errorlevel 1 (
     echo ERRORE: Impossibile eseguire Java!
-    pause
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
     exit /b 1
 )
 
@@ -127,7 +138,8 @@ echo.
 echo 3. Usa create-exe-simple.bat come alternativa
 echo    (non richiede Java 17+, funziona con qualsiasi Java)
 echo.
-pause
+if "%SHOW_PAUSE%"=="1" pause
+cd /d "%ORIGINAL_DIR%"
 exit /b 1
 
 :check_jpackage
@@ -146,56 +158,150 @@ echo.
 echo Imposta JAVA_HOME per puntare al JDK:
 echo   set JAVA_HOME=C:\Program Files\Java\jdk-17
 echo.
-pause
+if "%SHOW_PAUSE%"=="1" pause
+cd /d "%ORIGINAL_DIR%"
 exit /b 1
 
 :jpackage_ok
 
 REM Verifica che il frontend sia stato copiato nella cartella static
+REM Il percorso è relativo alla directory build-scripts
 set STATIC_PATH=..\backend\src\main\resources\static
+set STATIC_INDEX=%STATIC_PATH%\index.html
+
+REM Verifica se la directory esiste E se contiene index.html
 if not exist "%STATIC_PATH%" (
     echo.
-    echo ATTENZIONE: Frontend non trovato in %STATIC_PATH%
+    echo ATTENZIONE: Directory static non trovata in %STATIC_PATH%
+    goto :static_error
+)
+
+if not exist "%STATIC_INDEX%" (
     echo.
-    echo Il frontend deve essere copiato nella cartella static del backend.
-    echo Esegui prima build-all.bat per compilare tutto, oppure:
-    echo   1. Compila il frontend: cd frontend ^&^& ng build
-    echo   2. Copia in static: xcopy /E /I /Y frontend\dist\frontend\browser backend\src\main\resources\static
+    echo ATTENZIONE: Frontend non trovato in %STATIC_PATH%
+    echo La directory esiste ma non contiene index.html
+    goto :static_error
+)
+
+echo Frontend trovato in %STATIC_PATH%
+goto :static_ok
+
+:static_error
+echo.
+echo Il frontend deve essere copiato nella cartella static del backend.
+echo Esegui prima build-all.bat per compilare tutto, oppure:
+echo   1. Compila il frontend: cd frontend ^&^& ng build
+echo   2. Copia in static: xcopy /E /I /Y frontend\dist\frontend\browser backend\src\main\resources\static
     echo   3. Ricompila il backend: cd backend ^&^& mvn clean package
     echo.
-    set /p continue="Vuoi continuare comunque? (S/N): "
-    if /i not "%continue%"=="S" (
-        pause
-        exit /b 1
+    if "%SHOW_PAUSE%"=="1" (
+        set /p continue="Vuoi continuare comunque? (S/N): "
+        if /i not "!continue!"=="S" (
+            cd /d "%ORIGINAL_DIR%"
+            endlocal
+            exit /b 1
+        )
+    ) else (
+        echo Continuo automaticamente (chiamato da build script)...
     )
-)
+
+:static_ok
 
 REM Crea directory distribuzione
 if not exist "..\distribuzione" mkdir "..\distribuzione"
-if not exist "..\distribuzione\jpackage-output" rmdir /s /q "..\distribuzione\jpackage-output" 2>nul
+
+REM Determina il percorso corretto per la directory di destinazione
+set DEST_DIR=..\distribuzione\jpackage-output
+
+REM Rimuovi la directory jpackage-output se esiste (per evitare conflitti)
+if exist "%DEST_DIR%" (
+    echo Rimozione directory jpackage-output esistente...
+    rmdir /s /q "%DEST_DIR%"
+    if errorlevel 1 (
+        echo ATTENZIONE: Impossibile rimuovere la directory esistente.
+        echo La directory potrebbe essere in uso da un altro processo.
+        echo.
+        if "%SHOW_PAUSE%"=="1" (
+            set /p continue="Vuoi continuare comunque? (S/N): "
+            if /i not "!continue!"=="S" (
+                cd /d "%ORIGINAL_DIR%"
+                exit /b 1
+            )
+        )
+    )
+)
 
 REM Percorso JAR (lo script è in build-scripts, quindi risaliamo di una directory)
-set JAR_PATH=..\backend\target\fatture-backend-1.0.0.jar
+REM Usa percorso assoluto basato sulla directory dello script
+set SCRIPT_DIR=%~dp0
+set PROJECT_ROOT=%SCRIPT_DIR%..
+set JAR_PATH=%PROJECT_ROOT%\backend\target\fatture-backend-1.0.0.jar
 
+REM Verifica anche percorsi alternativi
 if not exist "%JAR_PATH%" (
-    echo ERRORE: JAR non trovato in %JAR_PATH%
-    echo Esegui prima il build del backend!
-    pause
+    REM Prova percorso relativo
+    set JAR_PATH=..\backend\target\fatture-backend-1.0.0.jar
+    if not exist "%JAR_PATH%" (
+        REM Prova dalla directory corrente
+        set JAR_PATH=backend\target\fatture-backend-1.0.0.jar
+        if not exist "%JAR_PATH%" (
+            echo ERRORE: JAR non trovato!
+            echo Cercato in:
+            echo   - %PROJECT_ROOT%\backend\target\fatture-backend-1.0.0.jar
+            echo   - ..\backend\target\fatture-backend-1.0.0.jar
+            echo   - backend\target\fatture-backend-1.0.0.jar
+            echo.
+            echo Directory corrente: %CD%
+            echo Esegui prima il build del backend!
+            if "%SHOW_PAUSE%"=="1" pause
+            cd /d "%ORIGINAL_DIR%"
+            exit /b 1
+        )
+    )
+)
+
+echo JAR trovato: %JAR_PATH%
+
+REM Verifica che il JAR esista realmente nel percorso specificato
+if not exist "%JAR_PATH%" (
+    echo ERRORE: Il JAR non esiste nel percorso specificato: %JAR_PATH%
+    echo Directory corrente: %CD%
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
+    exit /b 1
+)
+
+REM Determina il percorso corretto per la directory di destinazione
+REM Lo script è in build-scripts, quindi ..\distribuzione è corretto
+REM DEST_DIR è già stato impostato sopra
+set INPUT_DIR=..\backend\target
+
+REM Verifica che la directory di input esista
+if not exist "%INPUT_DIR%" (
+    echo ERRORE: Directory di input non trovata: %INPUT_DIR%
+    echo Directory corrente: %CD%
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
     exit /b 1
 )
 
 echo.
 echo Creazione applicazione Windows con jpackage...
+echo Directory corrente: %CD%
+echo Input directory: %INPUT_DIR%
+echo Destinazione: %DEST_DIR%
+echo JAR: %JAR_PATH%
 echo.
 
 REM Crea applicazione Windows con jpackage
 REM Per Spring Boot, non serve specificare main-class se il JAR è eseguibile
+echo Esecuzione jpackage...
 "%JPACKAGE_CMD%" ^
-    --input ..\backend\target ^
+    --input "%INPUT_DIR%" ^
     --name "GestioneFatture" ^
     --main-jar fatture-backend-1.0.0.jar ^
     --type app-image ^
-    --dest ..\distribuzione\jpackage-output ^
+    --dest "%DEST_DIR%" ^
     --java-options "-Xmx512m" ^
     --java-options "-Dfile.encoding=UTF-8" ^
     --java-options "-Dspring.profiles.active=prod" ^
@@ -205,39 +311,107 @@ REM Per Spring Boot, non serve specificare main-class se il JAR è eseguibile
     --copyright "2024" ^
     --win-console
 
+REM Attendi un momento per assicurarsi che jpackage completi
+timeout /t 1 /nobreak >nul
+
+REM Verifica se l'eseguibile è stato creato (questo è il modo più affidabile)
+REM invece di controllare solo ERRORLEVEL, verifichiamo il risultato
+set EXE_PATH=%DEST_DIR%\GestioneFatture\GestioneFatture.exe
+
+echo Verifica risultato jpackage...
+if exist "%EXE_PATH%" (
+    echo jpackage completato con successo!
+    echo Eseguibile trovato: %EXE_PATH%
+    goto :jpackage_success
+)
+
+REM Se l'eseguibile non esiste, controlla ERRORLEVEL come fallback
 if errorlevel 1 (
     echo.
+    echo ========================================
     echo ERRORE nella creazione dell'applicazione con jpackage!
+    echo ========================================
+    echo Codice di errore: %ERRORLEVEL%
+    echo.
+    echo Directory corrente: %CD%
+    echo Input: %INPUT_DIR%
+    echo Destinazione: %DEST_DIR%
+    echo JAR: %JAR_PATH%
+    echo Percorso eseguibile cercato: %EXE_PATH%
+    echo.
+    echo Verifica la directory di output:
+    if exist "%DEST_DIR%" (
+        echo Directory %DEST_DIR% esiste. Contenuto:
+        dir "%DEST_DIR%"
+    ) else (
+        echo Directory %DEST_DIR% non esiste!
+    )
     echo.
     echo Verifica che:
     echo 1. Java 17+ sia installato
     echo 2. Il JAR sia stato creato correttamente
     echo 3. jpackage sia disponibile (incluso in JDK 17+)
+    echo 4. La directory di destinazione non sia bloccata da altri processi
     echo.
-    pause
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
+    exit /b 1
+) else (
+    REM jpackage non ha restituito errore ma l'eseguibile non esiste
+    echo.
+    echo ATTENZIONE: jpackage non ha restituito errori ma l'eseguibile non è stato trovato!
+    echo Percorso cercato: %EXE_PATH%
+    echo.
+    echo Verifica la directory di output:
+    if exist "%DEST_DIR%" (
+        echo Directory %DEST_DIR% esiste. Contenuto:
+        dir "%DEST_DIR%"
+    ) else (
+        echo Directory %DEST_DIR% non esiste!
+    )
+    echo.
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
     exit /b 1
 )
 
-REM Copia l'eseguibile nella cartella distribuzione principale
-if exist "..\distribuzione\jpackage-output\GestioneFatture\GestioneFatture.exe" (
-    copy "..\distribuzione\jpackage-output\GestioneFatture\GestioneFatture.exe" "..\distribuzione\GestioneFatture.exe" >nul
+:jpackage_success
+
+REM L'applicazione completa è in jpackage-output/GestioneFatture
+REM Non serve copiare l'exe esterno, l'applicazione completa è nella cartella
+set APP_DIR=%DEST_DIR%\GestioneFatture
+
+if exist "%EXE_PATH%" (
     echo.
     echo ========================================
     echo APPLICAZIONE CREATA CON SUCCESSO!
     echo ========================================
     echo.
-    echo File eseguibile: distribuzione\GestioneFatture.exe
+    echo Applicazione completa: distribuzione\jpackage-output\GestioneFatture
+    echo Eseguibile: distribuzione\jpackage-output\GestioneFatture\GestioneFatture.exe
     echo.
-    echo NOTA: L'applicazione completa si trova in:
-    echo   distribuzione\jpackage-output\GestioneFatture\
+    echo L'applicazione include:
+    echo   - GestioneFatture.exe (eseguibile principale)
+    echo   - Cartella app (contenente il JAR e le risorse)
+    echo   - Cartella runtime (Java runtime incluso)
+    echo   - Tutte le dipendenze necessarie
     echo.
-    echo Per distribuire, copia l'intera cartella GestioneFatture.
+    echo IMPORTANTE: Per distribuire, copia l'intera cartella GestioneFatture.
+    echo L'eseguibile da solo non funziona senza le cartelle app e runtime.
     echo.
+    REM Ripristina directory originale
+    cd /d "%ORIGINAL_DIR%"
+    REM Esci con successo (0 = successo)
+    endlocal
+    exit /b 0
 ) else (
     echo ERRORE: Eseguibile non trovato dopo la creazione!
-    pause
+    echo Percorso cercato: %EXE_PATH%
+    echo.
+    echo Verifica che jpackage abbia completato correttamente.
+    REM Ripristina directory originale
+    cd /d "%ORIGINAL_DIR%"
+    endlocal
     exit /b 1
 )
-
-pause
 

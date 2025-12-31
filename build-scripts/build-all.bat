@@ -5,7 +5,7 @@ echo ========================================
 
 echo.
 echo [1/4] Build Frontend Angular...
-cd ../../progetto-completo/frontend
+cd ../frontend
 call npm install
 if errorlevel 1 (
     echo ERRORE nell'installazione dipendenze frontend!
@@ -22,7 +22,15 @@ if errorlevel 1 (
 
 echo.
 echo [2/4] Copia output Angular nel backend...
-xcopy /E /I /Y ../../progetto-completo/frontend/dist\frontend\browser ..\..\progetto-completo\backend\src\main\resources\static
+cd ..
+if not exist "frontend\dist\frontend\browser" (
+    echo ERRORE: Directory frontend\dist\frontend\browser non trovata!
+    pause
+    exit /b 1
+)
+if not exist "backend\src\main\resources" mkdir "backend\src\main\resources"
+if not exist "backend\src\main\resources\static" mkdir "backend\src\main\resources\static"
+xcopy /E /I /Y "frontend\dist\frontend\browser\*" "backend\src\main\resources\static\"
 if errorlevel 1 (
     echo ERRORE nella copia dei file!
     pause
@@ -31,8 +39,18 @@ if errorlevel 1 (
 
 echo.
 echo [3/4] Build Backend Spring Boot...
-cd ..\progetto-completo\backend
-call mvn clean package -DskipTests
+cd ./backend
+
+REM Verifica se Maven è nel PATH, altrimenti usa il percorso locale
+set MAVEN_HOME=C:\apache-maven-3.9.9
+set MAVEN_CMD=%MAVEN_HOME%\bin\mvn.cmd
+if exist "%MAVEN_CMD%" (
+    call "%MAVEN_CMD%" clean package -DskipTests
+) else (
+    REM Prova con mvn se è nel PATH
+    call mvn clean package -DskipTests
+)
+
 if errorlevel 1 (
     echo ERRORE nel build del backend!
     pause
@@ -45,13 +63,15 @@ cd ..
 echo.
 echo Scegli il metodo per creare l'eseguibile:
 echo   1. jpackage (raccomandato - Java 17+, nessun antivirus)
-echo   2. Script semplice (.bat - più compatibile)
-echo   3. Launch4j (originale - può dare falsi positivi)
+echo   2. Script semplice (.bat - piu' compatibile)
+echo   3. Launch4j (originale - puo' dare falsi positivi)
 echo.
 set /p choice="Scelta (1/2/3): "
 
 if "%choice%"=="1" (
+    set CALLED_FROM_BUILD=1
     call build-scripts\create-exe-jpackage.bat
+    set CALLED_FROM_BUILD=
 ) else if "%choice%"=="2" (
     call build-scripts\create-exe-simple.bat
 ) else if "%choice%"=="3" (
@@ -72,11 +92,15 @@ echo ========================================
 echo BUILD COMPLETATO CON SUCCESSO!
 echo ========================================
 echo.
-echo File generato: distribuzione\GestioneFatture.exe
+echo Applicazione generata: distribuzione\jpackage-output\GestioneFatture
+echo Eseguibile: distribuzione\jpackage-output\GestioneFatture\GestioneFatture.exe
 echo.
 echo PROSSIMI PASSI:
-echo 1. Vai nella cartella 'distribuzione'
+echo 1. Vai nella cartella 'distribuzione\jpackage-output\GestioneFatture'
 echo 2. Doppio click su GestioneFatture.exe
 echo 3. L'applicazione si aprirà nel browser
+echo.
+echo IMPORTANTE: Per distribuire l'applicazione, copia l'intera cartella
+echo 'GestioneFatture' (contiene app, runtime e l'eseguibile).
 echo.
 pause
