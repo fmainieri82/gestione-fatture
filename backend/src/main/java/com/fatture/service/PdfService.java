@@ -251,22 +251,15 @@ public class PdfService {
         
         document.add(table1);
         
-        // Seconda riga: Valuta, Agente, Sconti/Magg.%, Pagamento, Sc./Magg.%, Rif.N.Cliente, Del
-        PdfPTable table2 = new PdfPTable(7);
+        // Seconda riga: Valuta, Agente, Del (rimossi Sconti/Magg.%, Pagamento, Sc./Magg.%, Rif.N.Cliente perché duplicati nella sezione totali)
+        PdfPTable table2 = new PdfPTable(3);
         table2.setWidthPercentage(100);
-        table2.setWidths(new float[]{10, 12, 12, 18, 12, 20, 16});
+        table2.setWidths(new float[]{33, 34, 33});
         table2.setLockedWidth(false);
         
         // Label sopra, valore sotto nella stessa cella
         addCellLabelValueVertical(table2, "Valuta", "EUR");
         addCellLabelValueVertical(table2, "Agente", "");
-        String scontiPercentuale = fattura.getScontiMaggiori() != null && fattura.getTotaleRighe() != null && fattura.getTotaleRighe().compareTo(BigDecimal.ZERO) > 0
-            ? String.format("%.2f", fattura.getScontiMaggiori().divide(fattura.getTotaleRighe(), 4, java.math.RoundingMode.HALF_UP).multiply(new BigDecimal("100")))
-            : "";
-        addCellLabelValueVertical(table2, "Sconti/Magg. %", scontiPercentuale);
-        addCellLabelValueVertical(table2, "Pagamento", fattura.getNote() != null && fattura.getNote().contains("PAGAMENTO") ? fattura.getNote() : "DA CONVENIRE");
-        addCellLabelValueVertical(table2, "Sc./Magg.%", scontiPercentuale);
-        addCellLabelValueVertical(table2, "Rif.N.Cliente", cliente.getRagioneSociale());
         addCellLabelValueVertical(table2, "Del", "");
         
         document.add(table2);
