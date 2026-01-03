@@ -14,7 +14,7 @@
     
     <groupId>com.fatture</groupId>
     <artifactId>fatture-backend</artifactId>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <name>Gestione Fatture Backend</name>
     <description>Applicazione per la gestione e generazione di fatture</description>
     
