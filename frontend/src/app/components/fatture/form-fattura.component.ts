@@ -89,7 +89,6 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
             </div>
           </div>
           <div class="cliente-group">
-            <div class="cliente-label-spacer"></div>
             <mat-form-field appearance="outline" class="form-field-cliente">
               <mat-label>Seleziona Cliente</mat-label>
               <mat-select [(ngModel)]="clienteSelezionatoId" (selectionChange)="selezionaCliente()">
@@ -100,7 +99,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               </mat-select>
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field-cliente">
-              <mat-label>Vostra banca (IBAN)</mat-label>
+              <mat-label>Banca (IBAN)</mat-label>
               <input matInput [(ngModel)]="fattura.vostraBanca" placeholder="IT60 X054 2811 1010 0000 0123 456">
             </mat-form-field>
           </div>
@@ -396,11 +395,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       max-width: 50%;
       display: flex;
       flex-direction: column;
-    }
-    
-    .cliente-label-spacer {
-      height: 28px;
-      margin-bottom: 12px;
+      gap: 12px;
+      padding-top: 40px; /* Allinea con la prima riga della sede di consegna (h4 height 28px + margin-bottom 12px) */
     }
     
     .form-field-cliente {

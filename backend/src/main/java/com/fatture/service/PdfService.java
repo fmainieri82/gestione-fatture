@@ -219,13 +219,32 @@ public class PdfService {
         Cliente cliente = fattura.getCliente();
         
         // Sede di consegna
-        String sedeConsegna = fattura.getSedeConsegnaIndirizzo() != null 
-            ? String.format("%s\n%s %s (%s) - Italia", 
-                fattura.getSedeConsegnaIndirizzo(),
-                fattura.getSedeConsegnaCap(),
-                fattura.getSedeConsegnaCitta(),
-                fattura.getSedeConsegnaProvincia())
-            : "-";
+        String sedeConsegna;
+        if (fattura.getSedeConsegnaIndirizzo() != null && !fattura.getSedeConsegnaIndirizzo().trim().isEmpty()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(fattura.getSedeConsegnaIndirizzo());
+            sb.append("\n");
+            
+            if (fattura.getSedeConsegnaCap() != null && !fattura.getSedeConsegnaCap().trim().isEmpty()) {
+                sb.append(fattura.getSedeConsegnaCap());
+            }
+            
+            if (fattura.getSedeConsegnaCitta() != null && !fattura.getSedeConsegnaCitta().trim().isEmpty()) {
+                if (sb.length() > 0 && !sb.toString().endsWith("\n")) {
+                    sb.append(" ");
+                }
+                sb.append(fattura.getSedeConsegnaCitta());
+            }
+            
+            if (fattura.getSedeConsegnaProvincia() != null && !fattura.getSedeConsegnaProvincia().trim().isEmpty()) {
+                sb.append(" (").append(fattura.getSedeConsegnaProvincia()).append(")");
+            }
+            
+            sb.append(" - Italia");
+            sedeConsegna = sb.toString();
+        } else {
+            sedeConsegna = "-";
+        }
         
         PdfPCell sedeCell = new PdfPCell();
         sedeCell.addElement(new Phrase("Sede di consegna", FONT_HEADER));
