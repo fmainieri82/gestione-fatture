@@ -99,6 +99,10 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
                 </mat-option>
               </mat-select>
             </mat-form-field>
+            <mat-form-field appearance="outline" class="form-field-cliente">
+              <mat-label>Vostra banca (IBAN)</mat-label>
+              <input matInput [(ngModel)]="fattura.vostraBanca" placeholder="IT60 X054 2811 1010 0000 0123 456">
+            </mat-form-field>
           </div>
         </div>
       </div>

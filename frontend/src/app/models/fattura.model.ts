@@ -37,7 +37,8 @@ export interface Fattura {
   importoScadenza?: number; // Importo della scadenza
   
   // Banca
-  bancaCliente?: string;
+  vostraBanca?: string; // IBAN del cliente
+  bancaCliente?: string; // Alias per compatibilità
   bancaEmittente?: string;
   bicEmittente?: string;
   

@@ -84,6 +84,9 @@ public class Fattura {
     @Column(name = "iban_emittente")
     private String ibanEmittente;
     
+    @Column(name = "vostra_banca")
+    private String vostraBanca; // IBAN del cliente
+    
     @Column(name = "telefono_emittente")
     private String telefonoEmittente;
     

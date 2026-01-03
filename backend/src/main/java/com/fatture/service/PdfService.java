@@ -77,8 +77,7 @@ public class PdfService {
         // Dati cliente e intestazione
         aggiungiDatiCliente(document, fattura);
         
-        // Tabella informazioni documento
-        aggiungiInfoDocumento(document, fattura);
+        // Tabella informazioni documento rimossa (informazioni spostate nel titolo e intestatario)
         
         // Tabella voci
         aggiungiTabellaVoci(document, fattura);
@@ -120,7 +119,7 @@ public class PdfService {
         aggiungiHeaderAzienda(document, fattura);
         aggiungiTitoloDocumento(document, fattura);
         aggiungiDatiCliente(document, fattura);
-        aggiungiInfoDocumento(document, fattura);
+        // Tabella informazioni documento rimossa (informazioni spostate nel titolo e intestatario)
         aggiungiTabellaVociConSopralluogo(document, fattura);
         aggiungiTotali(document, writer, fattura);
         
@@ -134,12 +133,15 @@ public class PdfService {
         table.setWidthPercentage(100);
         table.setWidths(new float[]{30, 70});
         table.setLockedWidth(false); // Permette il ridimensionamento automatico
+        table.setSpacingBefore(0);
+        table.setSpacingAfter(0);
         
-        // Logo
+        // Logo allineato a sinistra ai bordi
         PdfPCell logoCell = new PdfPCell();
         logoCell.setBorder(Rectangle.NO_BORDER);
         logoCell.setHorizontalAlignment(Element.ALIGN_LEFT);
-        logoCell.setPadding(10);
+        logoCell.setPadding(0); // Nessun padding per allineamento ai bordi
+        logoCell.setPaddingLeft(0);
         logoCell.setVerticalAlignment(Element.ALIGN_TOP);
         logoCell.setFixedHeight(60); // Altezza fissa per la cella
         
@@ -173,7 +175,8 @@ public class PdfService {
         PdfPCell datiCell = new PdfPCell(new Phrase(datiAzienda, FONT_SMALL));
         datiCell.setBorder(Rectangle.NO_BORDER);
         datiCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        datiCell.setPadding(10);
+        datiCell.setPadding(0); // Nessun padding per allineamento ai bordi
+        datiCell.setPaddingRight(0);
         table.addCell(datiCell);
         
         document.add(table);
@@ -181,16 +184,28 @@ public class PdfService {
     }
     
     private void aggiungiTitoloDocumento(Document document, Fattura fattura) throws DocumentException {
-        PdfPTable table = new PdfPTable(1);
+        PdfPTable table = new PdfPTable(2);
         table.setWidthPercentage(100);
+        table.setWidths(new float[]{50, 50});
         table.setLockedWidth(false);
         
-        // Titolo
+        // Titolo a sinistra
         PdfPCell titleCell = new PdfPCell(new Phrase(fattura.getTipoDocumento().getDescrizione(), FONT_TITLE));
         titleCell.setBorder(Rectangle.NO_BORDER);
         titleCell.setHorizontalAlignment(Element.ALIGN_LEFT);
         titleCell.setPadding(5);
         table.addCell(titleCell);
+        
+        // Numero documento e data a destra
+        String numeroEData = String.format("N. %s\nData: %s", 
+            fattura.getNumeroDocumento(),
+            fattura.getDataDocumento().format(dateFormatter));
+        PdfPCell numeroDataCell = new PdfPCell(new Phrase(numeroEData, FONT_NORMAL));
+        numeroDataCell.setBorder(Rectangle.NO_BORDER);
+        numeroDataCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        numeroDataCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        numeroDataCell.setPadding(5);
+        table.addCell(numeroDataCell);
         
         document.add(table);
         document.add(new Paragraph(" "));
@@ -218,11 +233,13 @@ public class PdfService {
         table.addCell(sedeCell);
         
         // Intestatario documento
-        String intestatario = String.format("%s\n%s %s (%s) - Italia",
-            cliente.getRagioneSociale(),
-            cliente.getCap(),
-            cliente.getCitta(),
-            cliente.getProvincia());
+        String intestatario = cliente.getRagioneSociale();
+        // Mostra partita IVA se presente, altrimenti codice fiscale
+        if (cliente.getPartitaIva() != null && !cliente.getPartitaIva().trim().isEmpty()) {
+            intestatario += "\nP.IVA: " + cliente.getPartitaIva();
+        } else if (cliente.getCodiceFiscale() != null && !cliente.getCodiceFiscale().trim().isEmpty()) {
+            intestatario += "\nC.F.: " + cliente.getCodiceFiscale();
+        }
         
         PdfPCell intestatarioCell = new PdfPCell();
         intestatarioCell.addElement(new Phrase("Intestatario documento", FONT_HEADER));
@@ -233,46 +250,11 @@ public class PdfService {
         document.add(new Paragraph(" "));
     }
     
-    private void aggiungiInfoDocumento(Document document, Fattura fattura) throws DocumentException {
-        Cliente cliente = fattura.getCliente();
-        
-        // Prima riga: Codice fiscale, Tipo documento, Numero documento, Data doc. (rimosso Codice cliente perché ridondante con Intestatario documento)
-        PdfPTable table1 = new PdfPTable(4);
-        table1.setWidthPercentage(100);
-        table1.setWidths(new float[]{20, 30, 30, 20});
-        table1.setLockedWidth(false);
-        
-        // Label sopra, valore sotto nella stessa cella
-        addCellLabelValueVertical(table1, "Codice fiscale", cliente.getCodiceFiscale() != null ? cliente.getCodiceFiscale() : "");
-        addCellLabelValueVertical(table1, "Tipo documento", fattura.getTipoDocumento().getDescrizione());
-        addCellLabelValueVertical(table1, "Numero documento", fattura.getNumeroDocumento());
-        addCellLabelValueVertical(table1, "Data doc.", fattura.getDataDocumento().format(dateFormatter));
-        
-        document.add(table1);
-        
-        // Seconda riga: Vostra banca, Nostra banca, BIC, Pagina (rimossa riga Valuta/Agente/Del perché ridondante)
-        PdfPTable table3 = new PdfPTable(4);
-        table3.setWidthPercentage(100);
-        table3.setWidths(new float[]{25, 50, 15, 10});
-        table3.setLockedWidth(false);
-        
-        // Label sopra, valore sotto nella stessa cella
-        addCellLabelValueVertical(table3, "Vostra banca", "");
-        String nostraBanca = fattura.getIbanEmittente() != null ? fattura.getIbanEmittente() : "";
-        String bancaCompleta = fattura.getRagioneSocialeEmittente() != null ? fattura.getRagioneSocialeEmittente() + " " : "";
-        bancaCompleta += nostraBanca;
-        addCellLabelValueVertical(table3, "Nostra banca", bancaCompleta);
-        // Estrai BIC dall'IBAN se presente (formato standard: ITXX XXXX XXXX...)
-        String bic = "ROMAITRRXXX"; // Default
-        if (nostraBanca.length() > 8) {
-            bic = nostraBanca.substring(4, 8) + "ITRRXXX";
-        }
-        addCellLabelValueVertical(table3, "BIC", bic);
-        addCellLabelValueVertical(table3, "Pagina", "1");
-        
-        document.add(table3);
-        document.add(new Paragraph(" "));
-    }
+    // Metodo rimosso: aggiungiInfoDocumento
+    // Le informazioni sono state spostate:
+    // - Codice fiscale: nella sezione "Intestatario documento"
+    // - Numero documento e Data: nel titolo del documento (allineati a destra)
+    // - Nostra banca/BIC: già presenti nelle info aziendali in alto a destra
     
     private void aggiungiTabellaVoci(Document document, Fattura fattura) throws DocumentException {
         PdfPTable table = new PdfPTable(7);
