@@ -236,14 +236,13 @@ public class PdfService {
     private void aggiungiInfoDocumento(Document document, Fattura fattura) throws DocumentException {
         Cliente cliente = fattura.getCliente();
         
-        // Prima riga: Codice cliente, Codice fiscale, Tipo documento, Numero documento, Data doc.
-        PdfPTable table1 = new PdfPTable(5);
+        // Prima riga: Codice fiscale, Tipo documento, Numero documento, Data doc. (rimosso Codice cliente perché ridondante con Intestatario documento)
+        PdfPTable table1 = new PdfPTable(4);
         table1.setWidthPercentage(100);
-        table1.setWidths(new float[]{15, 15, 25, 25, 20});
+        table1.setWidths(new float[]{20, 30, 30, 20});
         table1.setLockedWidth(false);
         
         // Label sopra, valore sotto nella stessa cella
-        addCellLabelValueVertical(table1, "Codice cliente", cliente.getId() != null ? cliente.getId().toString() : "");
         addCellLabelValueVertical(table1, "Codice fiscale", cliente.getCodiceFiscale() != null ? cliente.getCodiceFiscale() : "");
         addCellLabelValueVertical(table1, "Tipo documento", fattura.getTipoDocumento().getDescrizione());
         addCellLabelValueVertical(table1, "Numero documento", fattura.getNumeroDocumento());
@@ -251,20 +250,7 @@ public class PdfService {
         
         document.add(table1);
         
-        // Seconda riga: Valuta, Agente, Del (rimossi Sconti/Magg.%, Pagamento, Sc./Magg.%, Rif.N.Cliente perché duplicati nella sezione totali)
-        PdfPTable table2 = new PdfPTable(3);
-        table2.setWidthPercentage(100);
-        table2.setWidths(new float[]{33, 34, 33});
-        table2.setLockedWidth(false);
-        
-        // Label sopra, valore sotto nella stessa cella
-        addCellLabelValueVertical(table2, "Valuta", "EUR");
-        addCellLabelValueVertical(table2, "Agente", "");
-        addCellLabelValueVertical(table2, "Del", "");
-        
-        document.add(table2);
-        
-        // Terza riga: Vostra banca, Nostra banca, BIC, Pagina
+        // Seconda riga: Vostra banca, Nostra banca, BIC, Pagina (rimossa riga Valuta/Agente/Del perché ridondante)
         PdfPTable table3 = new PdfPTable(4);
         table3.setWidthPercentage(100);
         table3.setWidths(new float[]{25, 50, 15, 10});
