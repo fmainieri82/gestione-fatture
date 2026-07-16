@@ -174,7 +174,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
         <h3 class="totali-title">Totali e Spese</h3>
         <div class="totali-box">
           <div class="totale-row">
-            <span>Totale righe:</span>
+            <span>Importo:</span>
             <strong>€ {{ calcolaImponibile() | number:'1.2-2' }}</strong>
           </div>
           <div class="form-row">
@@ -207,17 +207,17 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Spese Incasso (€)</mat-label>
+              <mat-label>Spese Consegna (€)</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.speseIncasso" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Spese Imballo (€)</mat-label>
+              <mat-label>Garanzia (€)</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.speseImballo" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Bollo (€)</mat-label>
+              <mat-label>Spese ritiro e dimessa (€)</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.bollo" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
@@ -238,8 +238,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
           <thead>
             <tr>
               <th>Tipo pagamento</th>
-              <th>Scadenza</th>
-              <th>Importo scadenza</th>
+              <th>Consegna</th>
+              <th>Rimanenza</th>
             </tr>
           </thead>
           <tbody>
@@ -261,7 +261,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               </td>
               <td>
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Scadenza</mat-label>
+                  <mat-label>Consegna</mat-label>
                   <input matInput [matDatepicker]="scadenzaPicker" [(ngModel)]="scadenzaPagamento" (dateChange)="onScadenzaChange($event)" [min]="minDate">
                   <mat-datepicker-toggle matIconSuffix [for]="scadenzaPicker"></mat-datepicker-toggle>
                   <mat-datepicker #scadenzaPicker></mat-datepicker>
@@ -269,7 +269,7 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               </td>
               <td>
                 <mat-form-field appearance="outline" class="form-field">
-                  <mat-label>Importo scadenza</mat-label>
+                  <mat-label>Rimanenza</mat-label>
                   <input matInput type="number" [(ngModel)]="fattura.importoScadenza" placeholder="0.00">
                 </mat-form-field>
               </td>
@@ -282,18 +282,21 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
         <h3>Dati Spedizione</h3>
         <div class="form-row">
           <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Modalità di spedizione</mat-label>
-            <input matInput [(ngModel)]="fattura.modalitaSpedizione" placeholder="Es: Corriere espresso">
+            <mat-label>Spedizione</mat-label>
+            <mat-select [(ngModel)]="fattura.modalitaSpedizione">
+              <mat-option value="Camion con sponda">Camion con sponda</mat-option>
+              <mat-option value="Furgone">Furgone</mat-option>
+            </mat-select>
           </mat-form-field>
           <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Porto</mat-label>
-            <input matInput [(ngModel)]="fattura.porto" placeholder="Es: Franco Fabbrica">
+            <mat-label>Numero operai</mat-label>
+            <input matInput [(ngModel)]="fattura.porto" placeholder="Es: 2">
           </mat-form-field>
         </div>
         <div class="form-row">
           <mat-form-field appearance="outline" class="form-field">
-            <mat-label>Condizione di consegna</mat-label>
-            <input matInput [(ngModel)]="fattura.condizioneConsegna" placeholder="Es: Franco Fabbrica (EXW)">
+            <mat-label>Validità offerta</mat-label>
+            <input matInput [(ngModel)]="fattura.condizioneConsegna" placeholder="30gg">
           </mat-form-field>
         </div>
       </div>
@@ -709,7 +712,7 @@ export class FormFatturaComponent implements OnInit {
     const bollo = this.fattura.bollo || 0;
     const ritenuta = this.fattura.ritenuta || 0;
     
-    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Incasso - Spese Imballo - Bollo - Ritenuta
+    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Consegna - Garanzia - Spese ritiro e dimessa - Ritenuta
     return imponibileScontato + iva + speseTrasporto - accontoVersato - speseIncasso - speseImballo - bollo - ritenuta;
   }
 
@@ -738,8 +741,8 @@ export class FormFatturaComponent implements OnInit {
     this.fattura.partitaIvaEmittente = '15178011001';
     this.fattura.codiceUnivocoEmittente = 'SUBM70N';
     this.fattura.ibanEmittente = 'IT97M0832703245000000002571';
-    this.fattura.telefonoEmittente = '06.69375644';
-    this.fattura.emailEmittente = 'info@tecnohoreca.it';
+    this.fattura.telefonoEmittente = 'Gaetani Antonio 360721200';
+    this.fattura.emailEmittente = 'gaetani@tecnohoreca.it';
     
     // Mappa i campi pagamento per il backend
     // Il backend si aspetta scadenzaPagamento come LocalDate, quindi usiamo scadenzaPagamentoData
@@ -851,7 +854,7 @@ export class FormFatturaComponent implements OnInit {
       ritenuta: 0,
       modalitaSpedizione: '',
       porto: '',
-      condizioneConsegna: 'Franco Fabbrica (EXW)'
+      condizioneConsegna: '30gg'
     };
   }
 }

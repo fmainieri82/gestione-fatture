@@ -1,11 +1,15 @@
 @echo off
+REM Vai sempre alla root del progetto (cartella padre di build-scripts),
+REM indipendentemente da dove lo script viene lanciato.
+cd /d "%~dp0.."
+
 echo ========================================
 echo BUILD APPLICAZIONE GESTIONE FATTURE
 echo ========================================
 
 echo.
 echo [1/4] Build Frontend Angular...
-cd ../frontend
+cd frontend
 call npm install
 if errorlevel 1 (
     echo ERRORE nell'installazione dipendenze frontend!

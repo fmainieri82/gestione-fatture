@@ -214,151 +214,99 @@ echo   2. Copia in static: xcopy /E /I /Y frontend\dist\frontend\browser backend
 :static_ok
 
 REM Crea directory distribuzione
-if not exist "..\distribuzione" mkdir "..\distribuzione"
+if not exist "%PROJECT_ROOT%\distribuzione" mkdir "%PROJECT_ROOT%\distribuzione"
 
 REM Determina il percorso corretto per la directory di destinazione
-set DEST_DIR=..\distribuzione\jpackage-output
+set DEST_DIR=%PROJECT_ROOT%\distribuzione\jpackage-output
 
 REM Rimuovi la directory jpackage-output se esiste (per evitare conflitti)
 if exist "%DEST_DIR%" (
     echo Rimozione directory jpackage-output esistente...
-    rmdir /s /q "%DEST_DIR%"
-    if errorlevel 1 (
-        echo ATTENZIONE: Impossibile rimuovere la directory esistente.
-        echo La directory potrebbe essere in uso da un altro processo.
+    rmdir /s /q "%DEST_DIR%" 2>nul
+    if exist "%DEST_DIR%" (
         echo.
-        if "%SHOW_PAUSE%"=="1" (
-            set /p continue="Vuoi continuare comunque? (S/N): "
-            if /i not "!continue!"=="S" (
-                cd /d "%ORIGINAL_DIR%"
-                exit /b 1
-            )
-        )
+        echo ERRORE: Impossibile rimuovere "%DEST_DIR%"
+        echo Chiudi GestioneFatture.exe / Explorer su quella cartella e riprova.
+        echo.
+        if "%SHOW_PAUSE%"=="1" pause
+        cd /d "%ORIGINAL_DIR%"
+        endlocal
+        exit /b 1
     )
 )
 
 REM Leggi la versione dal pom.xml
 echo Lettura versione dal pom.xml...
-set VERSION=1.0.0
-
-REM Trova il file pom.xml (lo script è in build-scripts, quindi risaliamo di una directory)
-set POM_FILE=..\backend\pom.xml
-if not exist "%POM_FILE%" (
-    set POM_FILE=backend\pom.xml
-    if not exist "%POM_FILE%" (
-        set POM_FILE=%PROJECT_ROOT%\backend\pom.xml
-    )
-)
+set VERSION=
+set POM_FILE=%PROJECT_ROOT%\backend\pom.xml
+if not exist "%POM_FILE%" set POM_FILE=%~dp0..\backend\pom.xml
 
 if not exist "%POM_FILE%" (
-    echo ATTENZIONE: pom.xml non trovato, uso versione default 1.0.0
-    goto :version_done
+    echo ATTENZIONE: pom.xml non trovato
+    goto :find_jar_by_glob
 )
 
 echo File pom.xml trovato: %POM_FILE%
 
-REM Prova prima con Maven se disponibile (metodo più affidabile)
-where mvn >nul 2>&1
-if not errorlevel 1 (
-    echo Tentativo lettura versione con Maven...
-    pushd "..\backend"
-    if exist "pom.xml" (
-        for /f "tokens=*" %%v in ('mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2^>nul') do (
-            if not "%%v"=="" (
-                set VERSION=%%v
-                popd
-                goto :version_done
-            )
-        )
-    )
-    popd
-)
-
-REM Fallback: estrai la versione dal pom.xml con PowerShell (metodo più affidabile)
-echo Lettura versione dal file pom.xml con PowerShell...
-REM Usa percorso assoluto per PowerShell
-for /f "delims=" %%v in ('powershell -NoProfile -Command "$pomPath = Resolve-Path '%POM_FILE%'; $pom = [xml](Get-Content -Path $pomPath -Raw); Write-Output $pom.project.version" 2^>nul') do (
-    if not "%%v"=="" (
-        set VERSION=%%v
-        goto :version_done
-    )
-)
-
-REM Ultimo fallback: regex semplice con PowerShell
-echo Tentativo con regex...
-for /f "delims=" %%v in ('powershell -NoProfile -Command "$content = Get-Content '%POM_FILE%' -Raw; if ($content -match ''<artifactId>fatture-backend</artifactId>[\s\S]*?<version>([^<]+)</version>'') { Write-Output $matches[1] }" 2^>nul') do (
-    if not "%%v"=="" (
-        set VERSION=%%v
-        goto :version_done
-    )
+REM Estrai <version> del progetto (prima occurrence dopo <artifactId>fatture-backend)
+for /f "usebackq delims=" %%v in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$xml=[xml](Get-Content -LiteralPath '%POM_FILE%' -Raw); $xml.project.version"`) do (
+    set VERSION=%%v
 )
 
 :version_done
 REM Rimuovi eventuali caratteri non validi dalla versione
-set VERSION=%VERSION: =%
-set VERSION=%VERSION:"=%
-set VERSION=%VERSION:'=%
-echo Versione rilevata: %VERSION%
+if defined VERSION (
+    set "VERSION=!VERSION: =!"
+    set "VERSION=!VERSION:"=!"
+    set "VERSION=!VERSION:'=!"
+)
+if defined VERSION (
+    echo Versione rilevata: !VERSION!
+    set "JAR_NAME=fatture-backend-!VERSION!.jar"
+) else (
+    echo ATTENZIONE: versione non rilevata, cerco il JAR in target\
+    goto :find_jar_by_glob
+)
 
-REM Percorso JAR (lo script è in build-scripts, quindi risaliamo di una directory)
-set JAR_NAME=fatture-backend-%VERSION%.jar
-
-echo Cerca JAR: %JAR_NAME%
+echo Cerca JAR: !JAR_NAME!
 echo Directory corrente: %CD%
 
-REM Prova prima con percorso relativo (più affidabile quando lo script è in build-scripts)
-set JAR_PATH=..\backend\target\%JAR_NAME%
-echo Verifica percorso: %JAR_PATH%
-if exist "%JAR_PATH%" (
-    echo JAR trovato in: %JAR_PATH%
+set "JAR_PATH=%PROJECT_ROOT%\backend\target\!JAR_NAME!"
+echo Verifica percorso: !JAR_PATH!
+if exist "!JAR_PATH!" if not exist "!JAR_PATH!\*" (
+    echo JAR trovato in: !JAR_PATH!
     goto :jar_found
 )
 
-REM Prova dalla directory corrente (se eseguito dalla root del progetto)
-set JAR_PATH=backend\target\%JAR_NAME%
-echo Verifica percorso: %JAR_PATH%
-if exist "%JAR_PATH%" (
-    echo JAR trovato in: %JAR_PATH%
+set "JAR_PATH=%~dp0..\backend\target\!JAR_NAME!"
+if exist "!JAR_PATH!" if not exist "!JAR_PATH!\*" (
+    echo JAR trovato in: !JAR_PATH!
     goto :jar_found
 )
 
-REM Prova con percorso assoluto basato su PROJECT_ROOT
-if defined PROJECT_ROOT (
-    set JAR_PATH=%PROJECT_ROOT%\backend\target\%JAR_NAME%
-    echo Verifica percorso: %JAR_PATH%
-    if exist "%JAR_PATH%" (
-        echo JAR trovato in: %JAR_PATH%
-        goto :jar_found
-    )
-)
-
-REM Se non trovato, prova a cercare qualsiasi JAR nella directory target
-echo Cerca qualsiasi JAR nella directory target...
-if exist "..\backend\target" (
-    for %%f in ("..\backend\target\fatture-backend-*.jar") do (
-        echo JAR trovato: %%f
-        set JAR_PATH=%%f
+:find_jar_by_glob
+echo Cerca qualsiasi fatture-backend-*.jar in target (escludendo .original)...
+set JAR_PATH=
+set JAR_NAME=
+for %%f in ("%~dp0..\backend\target\fatture-backend-*.jar") do (
+    echo %%~nxf | findstr /i /c:".original" >nul
+    if errorlevel 1 (
+        set JAR_PATH=%%~ff
+        set JAR_NAME=%%~nxf
         goto :jar_found
     )
 )
 
 :jar_not_found
-echo ERRORE: JAR non trovato!
-echo Cercato in:
-echo   - ..\backend\target\%JAR_NAME%
-echo   - backend\target\%JAR_NAME%
-if defined PROJECT_ROOT (
-    echo   - %PROJECT_ROOT%\backend\target\%JAR_NAME%
-)
-echo.
+echo ERRORE: JAR non trovato in backend\target\
 echo Directory corrente: %CD%
 echo Versione cercata: %VERSION%
-echo Nome JAR: %JAR_NAME%
 echo.
-echo Verifica che:
-echo   1. Il backend sia stato compilato (mvn clean package)
-echo   2. Il JAR esista in backend\target\
-echo   3. La versione nel pom.xml corrisponda
+echo Verifica che il backend sia stato compilato (mvn clean package).
+if exist "%~dp0..\backend\target" (
+    echo Contenuto di backend\target:
+    dir "%~dp0..\backend\target\*.jar"
+)
 echo.
 if "%SHOW_PAUSE%"=="1" pause
 cd /d "%ORIGINAL_DIR%"
@@ -366,12 +314,30 @@ endlocal
 exit /b 1
 
 :jar_found
+REM Se arrivati dal glob, JAR_NAME potrebbe gia' essere impostato
+if not defined JAR_NAME (
+    for %%f in ("%JAR_PATH%") do set JAR_NAME=%%~nxf
+)
 echo JAR trovato correttamente: %JAR_PATH%
+echo Nome JAR per jpackage: %JAR_NAME%
 
-REM Verifica che il JAR esista realmente
+REM Verifica che il JAR esista come FILE (non directory)
 if not exist "%JAR_PATH%" (
-    echo ERRORE: Il JAR non esiste nel percorso specificato: %JAR_PATH%
-    echo Directory corrente: %CD%
+    echo ERRORE: Il JAR non esiste: %JAR_PATH%
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
+    endlocal
+    exit /b 1
+)
+if exist "%JAR_PATH%\*" (
+    echo ERRORE: Il percorso JAR punta a una directory, non a un file: %JAR_PATH%
+    if "%SHOW_PAUSE%"=="1" pause
+    cd /d "%ORIGINAL_DIR%"
+    endlocal
+    exit /b 1
+)
+if "%JAR_NAME%"=="" (
+    echo ERRORE: Nome JAR vuoto - impossibile eseguire jpackage.
     if "%SHOW_PAUSE%"=="1" pause
     cd /d "%ORIGINAL_DIR%"
     endlocal
@@ -379,9 +345,15 @@ if not exist "%JAR_PATH%" (
 )
 
 REM Determina il percorso corretto per la directory di destinazione
-REM Lo script è in build-scripts, quindi ..\distribuzione è corretto
-REM DEST_DIR è già stato impostato sopra
-set INPUT_DIR=..\backend\target
+REM DEST_DIR e' gia' stato impostato sopra come percorso assoluto
+set INPUT_DIR=%PROJECT_ROOT%\backend\target
+
+REM Se VERSION e' ancora vuota, ricavala dal nome del JAR (fatture-backend-X.Y.Z.jar)
+if not defined VERSION (
+    for /f "tokens=3 delims=-" %%a in ("%JAR_NAME%") do set VERSION=%%a
+    if defined VERSION set VERSION=!VERSION:.jar=!
+)
+if not defined VERSION set VERSION=1.0.0
 
 REM Verifica che la directory di input esista
 if not exist "%INPUT_DIR%" (
@@ -398,17 +370,16 @@ echo Directory corrente: %CD%
 echo Input directory: %INPUT_DIR%
 echo Destinazione: %DEST_DIR%
 echo JAR: %JAR_PATH%
+echo Nome JAR: %JAR_NAME%
+echo Versione: %VERSION%
 echo.
 
 REM Crea applicazione Windows con jpackage
-REM Per Spring Boot, non serve specificare main-class se il JAR è eseguibile
 echo Esecuzione jpackage...
-echo JAR: %JAR_NAME%
-echo Versione: %VERSION%
 "%JPACKAGE_CMD%" ^
     --input "%INPUT_DIR%" ^
     --name "GestioneFatture" ^
-    --main-jar %JAR_NAME% ^
+    --main-jar "%JAR_NAME%" ^
     --type app-image ^
     --dest "%DEST_DIR%" ^
     --java-options "-Xmx512m" ^

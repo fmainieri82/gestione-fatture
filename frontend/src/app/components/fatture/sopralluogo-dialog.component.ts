@@ -157,18 +157,23 @@ import { VoceFattura } from '../../models/fattura.model';
           </mat-select>
         </mat-form-field>
 
-        <!-- Sesta riga -->
-        <mat-form-field appearance="outline">
-          <mat-label>Giorno di consegna</mat-label>
-          <input matInput [matDatepicker]="picker" [(ngModel)]="giornoConsegna" placeholder="Seleziona data">
-          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
-          <mat-datepicker #picker></mat-datepicker>
-        </mat-form-field>
+        <!-- Giorno e ora di consegna -->
+        <div class="consegna-section full-width">
+          <div class="consegna-label">Giorno e ora di consegna</div>
+          <div class="consegna-fields">
+            <mat-form-field appearance="outline">
+              <mat-label>Giorno</mat-label>
+              <input matInput [matDatepicker]="consegnaPicker" [(ngModel)]="giornoConsegna" placeholder="Seleziona data" readonly (click)="consegnaPicker.open()">
+              <mat-datepicker-toggle matIconSuffix [for]="consegnaPicker"></mat-datepicker-toggle>
+              <mat-datepicker #consegnaPicker touchUi></mat-datepicker>
+            </mat-form-field>
 
-        <mat-form-field appearance="outline">
-          <mat-label>Ora di consegna</mat-label>
-          <input matInput type="time" [(ngModel)]="oraConsegna">
-        </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Ora</mat-label>
+              <input matInput type="time" [(ngModel)]="oraConsegna">
+            </mat-form-field>
+          </div>
+        </div>
       </div>
     </div>
     <div mat-dialog-actions align="end">
@@ -191,6 +196,27 @@ import { VoceFattura } from '../../models/fattura.model';
     
     .full-width {
       grid-column: 1 / -1;
+    }
+
+    .consegna-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .consegna-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.7);
+    }
+
+    .consegna-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
     }
     
     mat-form-field {
@@ -222,28 +248,19 @@ export class SopralluogoDialogComponent {
     this.macchinaDaSmontareStr = data.macchinaDaSmontare === true ? 'SI' : data.macchinaDaSmontare === false ? 'NO' : '';
     this.parcheggioStr = data.parcheggio === true ? 'SI' : data.parcheggio === false ? 'NO' : '';
     
-    // Parsa giornoOraConsegna se esiste
+    // Parsa giornoOraConsegna se esiste (es. "16/07/2026 ore 14:30")
     if (data.giornoOraConsegna) {
-      // Prova a parsare il formato "dd/MM/yyyy HH:mm" o "dd/MM/yyyy ore HH:mm"
-      const parts = data.giornoOraConsegna.split(/[\sore]+/);
-      if (parts.length >= 1) {
-        const dateStr = parts[0].trim();
-        // Prova formato italiano dd/MM/yyyy
-        const dateMatch = dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-        if (dateMatch) {
-          const day = parseInt(dateMatch[1], 10);
-          const month = parseInt(dateMatch[2], 10) - 1; // I mesi in JS sono 0-based
-          const year = parseInt(dateMatch[3], 10);
-          this.giornoConsegna = new Date(year, month, day);
-        }
+      const raw = data.giornoOraConsegna.trim();
+      const dateMatch = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (dateMatch) {
+        const day = parseInt(dateMatch[1], 10);
+        const month = parseInt(dateMatch[2], 10) - 1;
+        const year = parseInt(dateMatch[3], 10);
+        this.giornoConsegna = new Date(year, month, day);
       }
-      // Estrai l'ora se presente
-      if (parts.length >= 2) {
-        const timeStr = parts[parts.length - 1].trim();
-        const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
-        if (timeMatch) {
-          this.oraConsegna = timeMatch[0];
-        }
+      const timeMatch = raw.match(/(\d{1,2}):(\d{2})/);
+      if (timeMatch) {
+        this.oraConsegna = `${timeMatch[1].padStart(2, '0')}:${timeMatch[2]}`;
       }
     }
   }

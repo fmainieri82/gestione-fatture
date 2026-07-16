@@ -276,9 +276,9 @@ public class PdfService {
     // - Nostra banca/BIC: già presenti nelle info aziendali in alto a destra
     
     private void aggiungiTabellaVoci(Document document, Fattura fattura) throws DocumentException {
-        PdfPTable table = new PdfPTable(7);
+        PdfPTable table = new PdfPTable(6);
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{30, 8, 8, 12, 12, 8, 22});
+        table.setWidths(new float[]{52, 8, 8, 12, 12, 8});
         
             // Headers con solo bordi orizzontali
             PdfPCell header1 = new PdfPCell(new Phrase("Descrizione merce o servizio", FONT_SMALL));
@@ -310,17 +310,8 @@ public class PdfService {
             styleHeaderCellNoVerticalBorders(header6);
             header6.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(header6);
-            
-            PdfPCell header7 = new PdfPCell(new Phrase("Evasione", FONT_SMALL));
-            styleHeaderCellNoVerticalBorders(header7);
-            header7.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            table.addCell(header7);
         
         // Voci
-        String dataEvasione = fattura.getDataDocumento() != null 
-            ? fattura.getDataDocumento().format(dateFormatter) 
-            : "";
-        
         for (VoceFattura voce : fattura.getVoci()) {
             boolean hasNote = voce.getNote() != null && !voce.getNote().trim().isEmpty();
             
@@ -414,20 +405,6 @@ public class PdfService {
             ivaCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(ivaCell);
             
-            PdfPCell evasioneCell = new PdfPCell(new Phrase(dataEvasione, FONT_SMALL));
-            evasioneCell.setPadding(5);
-            evasioneCell.setBorderWidthTop(1.0f);
-            evasioneCell.setBorderWidthBottom(hasNote ? 0 : 1.0f);
-            evasioneCell.setBorderWidthLeft(0);
-            evasioneCell.setBorderWidthRight(0);
-            evasioneCell.setBorderColorTop(LIGHT_GRAY_BORDER);
-            if (!hasNote) {
-                evasioneCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
-            }
-            evasioneCell.setBackgroundColor(BaseColor.WHITE);
-            evasioneCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            table.addCell(evasioneCell);
-            
             // Aggiungi riga note se presenti (occupa tutte le colonne)
             if (hasNote) {
                 PdfPCell noteCell = new PdfPCell(new Phrase("NOTE:\n" + voce.getNote() + "\n", FONT_SMALL));
@@ -435,7 +412,7 @@ public class PdfService {
                 noteCell.setPaddingLeft(20); // Rientro a sinistra per indicare che appartiene alla riga precedente
                 noteCell.setBorder(Rectangle.NO_BORDER); // Nessun bordo
                 noteCell.setBackgroundColor(NOTE_BACKGROUND); // Sfondo leggermente grigio per distinguerle
-                noteCell.setColspan(7); // Occupa tutte le 7 colonne
+                noteCell.setColspan(6); // Occupa tutte le 6 colonne
                 table.addCell(noteCell);
             }
         }
@@ -445,9 +422,9 @@ public class PdfService {
     }
     
     private void aggiungiTabellaVociConSopralluogo(Document document, Fattura fattura) throws DocumentException {
-        PdfPTable table = new PdfPTable(7);
+        PdfPTable table = new PdfPTable(6);
         table.setWidthPercentage(100);
-        table.setWidths(new float[]{30, 8, 8, 12, 12, 8, 22});
+        table.setWidths(new float[]{52, 8, 8, 12, 12, 8});
         table.setLockedWidth(false);
 
         // Headers
@@ -480,17 +457,8 @@ public class PdfService {
         styleHeaderCellNoVerticalBorders(header6);
         header6.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(header6);
-        
-        PdfPCell header7 = new PdfPCell(new Phrase("Evasione", FONT_SMALL));
-        styleHeaderCellNoVerticalBorders(header7);
-        header7.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        table.addCell(header7);
     
         // Voci
-        String dataEvasione = fattura.getDataDocumento() != null 
-            ? fattura.getDataDocumento().format(dateFormatter) 
-            : "";
-        
         for (VoceFattura voce : fattura.getVoci()) {
             boolean hasNote = voce.getNote() != null && !voce.getNote().trim().isEmpty();
             boolean hasSopralluogo = hasDatiSopralluogo(voce);
@@ -585,20 +553,6 @@ public class PdfService {
             ivaCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             table.addCell(ivaCell);
             
-            PdfPCell evasioneCell = new PdfPCell(new Phrase(dataEvasione, FONT_SMALL));
-            evasioneCell.setPadding(5);
-            evasioneCell.setBorderWidthTop(1.0f);
-            evasioneCell.setBorderWidthBottom((hasNote || hasSopralluogo) ? 0 : 1.0f);
-            evasioneCell.setBorderWidthLeft(0);
-            evasioneCell.setBorderWidthRight(0);
-            evasioneCell.setBorderColorTop(LIGHT_GRAY_BORDER);
-            if (!hasNote && !hasSopralluogo) {
-                evasioneCell.setBorderColorBottom(LIGHT_GRAY_BORDER);
-            }
-            evasioneCell.setBackgroundColor(BaseColor.WHITE);
-            evasioneCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-            table.addCell(evasioneCell);
-            
             // Aggiungi riga note se presenti
             if (hasNote) {
                 PdfPCell noteCell = new PdfPCell(new Phrase("NOTE:\n" + voce.getNote() + "\n", FONT_SMALL));
@@ -606,7 +560,7 @@ public class PdfService {
                 noteCell.setPaddingLeft(20);
                 noteCell.setBorder(Rectangle.NO_BORDER);
                 noteCell.setBackgroundColor(NOTE_BACKGROUND);
-                noteCell.setColspan(7);
+                noteCell.setColspan(6);
                 table.addCell(noteCell);
             }
             
@@ -618,7 +572,7 @@ public class PdfService {
                 sopralluogoCell.setPaddingLeft(20);
                 sopralluogoCell.setBorder(Rectangle.NO_BORDER);
                 sopralluogoCell.setBackgroundColor(NOTE_BACKGROUND);
-                sopralluogoCell.setColspan(7);
+                sopralluogoCell.setColspan(6);
                 table.addCell(sopralluogoCell);
             }
         }
@@ -729,7 +683,7 @@ public class PdfService {
         containerCell.setBackgroundColor(BaseColor.WHITE);
         
         // TABELLA TOTALI: label e importo nella stessa cella (label in alto, valore in basso)
-        // Prima riga: Totale righe, Sconti/magg., Imponibile Scontato, I.V.A., Spese Trasporto
+        // Prima riga: Importo, Sconti/magg., Imponibile Scontato, I.V.A., Spese Trasporto
         PdfPTable tableTotaliRiga1 = new PdfPTable(5);
         tableTotaliRiga1.setWidthPercentage(100);
         tableTotaliRiga1.setWidths(new float[]{20, 20, 20, 20, 20});
@@ -737,24 +691,24 @@ public class PdfService {
         tableTotaliRiga1.setSpacingBefore(0);
         tableTotaliRiga1.setSpacingAfter(0);
         
-        // Totale righe (label in alto, valore in basso)
-        addCellLabelValueVertical(tableTotaliRiga1, "Totale righe", formatCurrency(totaleRighe));
+        // Importo (label in alto, valore in basso)
+        addCellLabelValueVertical(tableTotaliRiga1, "Importo", "€ " + formatCurrency(totaleRighe));
         
         // Sconti/magg.
-        addCellLabelValueVertical(tableTotaliRiga1, "Sconti/magg.", formatCurrency(scontiMaggiori));
+        addCellLabelValueVertical(tableTotaliRiga1, "Sconti/magg.", "€ " + formatCurrency(scontiMaggiori));
         
         // Imponibile Scontato
-        addCellLabelValueVertical(tableTotaliRiga1, "Imponibile Scontato", formatCurrency(imponibileScontato));
+        addCellLabelValueVertical(tableTotaliRiga1, "Imponibile Scontato", "€ " + formatCurrency(imponibileScontato));
         
         // I.V.A.
-        addCellLabelValueVertical(tableTotaliRiga1, "I.V.A.", formatCurrency(importoIva));
+        addCellLabelValueVertical(tableTotaliRiga1, "I.V.A.", "€ " + formatCurrency(importoIva));
         
         // Spese Trasporto
-        addCellLabelValueVertical(tableTotaliRiga1, "Spese Trasporto", formatCurrency(speseTrasporto));
+        addCellLabelValueVertical(tableTotaliRiga1, "Spese Trasporto", "€ " + formatCurrency(speseTrasporto));
         
         containerCell.addElement(tableTotaliRiga1);
         
-        // Seconda riga: Acconto versato, Spese incasso, Spese imballo, Bollo, Ritenuta (con label sopra e valore in basso)
+        // Seconda riga: Acconto versato, Spese consegna, Garanzia, Spese ritiro e dimessa, Ritenuta
         PdfPTable tableTotaliRiga2 = new PdfPTable(5);
         tableTotaliRiga2.setWidthPercentage(100);
         tableTotaliRiga2.setWidths(new float[]{20, 20, 20, 20, 20});
@@ -769,9 +723,9 @@ public class PdfService {
         BigDecimal ritenuta = fattura.getRitenuta() != null ? fattura.getRitenuta() : BigDecimal.ZERO;
         
         addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", formatCurrency(accontoVersato));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese incasso", formatCurrency(speseIncasso));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese imballo", formatCurrency(speseImballo));
-        addCellLabelValueVertical(tableTotaliRiga2, "Bollo", formatCurrency(bollo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese consegna", formatCurrency(speseIncasso));
+        addCellLabelValueVertical(tableTotaliRiga2, "Garanzia", formatCurrency(speseImballo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese ritiro e dimessa", formatCurrency(bollo));
         addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", formatCurrency(ritenuta));
         
         containerCell.addElement(tableTotaliRiga2);
@@ -837,11 +791,11 @@ public class PdfService {
         styleHeaderCell(header1);
         tablePagamento.addCell(header1);
         
-        PdfPCell header2 = new PdfPCell(new Phrase("Scadenza", FONT_SMALL));
+        PdfPCell header2 = new PdfPCell(new Phrase("Consegna", FONT_SMALL));
         styleHeaderCell(header2);
         tablePagamento.addCell(header2);
         
-        PdfPCell header3 = new PdfPCell(new Phrase("Importo scadenza", FONT_SMALL));
+        PdfPCell header3 = new PdfPCell(new Phrase("Rimanenza", FONT_SMALL));
         styleHeaderCell(header3);
         tablePagamento.addCell(header3);
         
@@ -916,8 +870,8 @@ public class PdfService {
         tableSpedizione.setSpacingBefore(0);
         tableSpedizione.setSpacingAfter(0);
         
-        // Prima riga: Modalità di spedizione (label a sinistra, valore a destra)
-        PdfPCell label1 = new PdfPCell(new Phrase("Modalità di spedizione", FONT_SMALL));
+        // Prima riga: Spedizione (label a sinistra, valore a destra)
+        PdfPCell label1 = new PdfPCell(new Phrase("Spedizione", FONT_SMALL));
         label1.setPadding(5);
         label1.setBorderWidth(1.5f);
         label1.setBorderColor(GRAY_BORDER);
@@ -935,8 +889,8 @@ public class PdfService {
         value1.setHorizontalAlignment(Element.ALIGN_LEFT);
         tableSpedizione.addCell(value1);
         
-        // Seconda riga: Porto (label a sinistra, valore a destra)
-        PdfPCell label2 = new PdfPCell(new Phrase("Porto", FONT_SMALL));
+        // Seconda riga: Numero operai (label a sinistra, valore a destra)
+        PdfPCell label2 = new PdfPCell(new Phrase("Numero operai", FONT_SMALL));
         label2.setPadding(5);
         label2.setBorderWidth(1.5f);
         label2.setBorderColor(GRAY_BORDER);
@@ -954,8 +908,8 @@ public class PdfService {
         value2.setHorizontalAlignment(Element.ALIGN_LEFT);
         tableSpedizione.addCell(value2);
         
-        // Terza riga: Condizione di consegna (label a sinistra, valore a destra)
-        PdfPCell label3 = new PdfPCell(new Phrase("Condizione di consegna", FONT_SMALL));
+        // Terza riga: Validità offerta (label a sinistra, valore a destra)
+        PdfPCell label3 = new PdfPCell(new Phrase("Validità offerta", FONT_SMALL));
         label3.setPadding(5);
         label3.setBorderWidth(1.5f);
         label3.setBorderColor(GRAY_BORDER);
@@ -964,7 +918,9 @@ public class PdfService {
         tableSpedizione.addCell(label3);
         
         PdfPCell value3 = new PdfPCell(new Phrase(
-            fattura.getCondizioneConsegna() != null ? fattura.getCondizioneConsegna() : "Franco Fabbrica (EXW)", 
+            fattura.getCondizioneConsegna() != null && !fattura.getCondizioneConsegna().isEmpty()
+                ? fattura.getCondizioneConsegna()
+                : "30gg",
             FONT_SMALL));
         value3.setPadding(5);
         value3.setBorderWidth(1.5f);
