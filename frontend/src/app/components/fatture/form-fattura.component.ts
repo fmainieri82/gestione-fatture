@@ -211,13 +211,13 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               <input matInput type="number" [(ngModel)]="fattura.speseIncasso" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Garanzia (€)</mat-label>
+              <mat-label>Garanzia anni (€)</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.speseImballo" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
           </div>
           <div class="form-row">
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Spese ritiro e dimessa (€)</mat-label>
+              <mat-label>Spese ritiro e dismessa (€)</mat-label>
               <input matInput type="number" [(ngModel)]="fattura.bollo" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
@@ -712,7 +712,7 @@ export class FormFatturaComponent implements OnInit {
     const bollo = this.fattura.bollo || 0;
     const ritenuta = this.fattura.ritenuta || 0;
     
-    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Consegna - Garanzia - Spese ritiro e dimessa - Ritenuta
+    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Consegna - Garanzia anni - Spese ritiro e dismessa - Ritenuta
     return imponibileScontato + iva + speseTrasporto - accontoVersato - speseIncasso - speseImballo - bollo - ritenuta;
   }
 

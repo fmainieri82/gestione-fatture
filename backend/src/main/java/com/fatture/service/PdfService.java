@@ -708,7 +708,7 @@ public class PdfService {
         
         containerCell.addElement(tableTotaliRiga1);
         
-        // Seconda riga: Acconto versato, Spese consegna, Garanzia, Spese ritiro e dimessa, Ritenuta
+        // Seconda riga: Acconto versato, Spese consegna, Garanzia anni, Spese ritiro e dismessa, Ritenuta
         PdfPTable tableTotaliRiga2 = new PdfPTable(5);
         tableTotaliRiga2.setWidthPercentage(100);
         tableTotaliRiga2.setWidths(new float[]{20, 20, 20, 20, 20});
@@ -722,11 +722,11 @@ public class PdfService {
         BigDecimal bollo = fattura.getBollo() != null ? fattura.getBollo() : BigDecimal.ZERO;
         BigDecimal ritenuta = fattura.getRitenuta() != null ? fattura.getRitenuta() : BigDecimal.ZERO;
         
-        addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", formatCurrency(accontoVersato));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese consegna", formatCurrency(speseIncasso));
-        addCellLabelValueVertical(tableTotaliRiga2, "Garanzia", formatCurrency(speseImballo));
-        addCellLabelValueVertical(tableTotaliRiga2, "Spese ritiro e dimessa", formatCurrency(bollo));
-        addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", formatCurrency(ritenuta));
+        addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", "€ " + formatCurrency(accontoVersato));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese consegna", "€ " + formatCurrency(speseIncasso));
+        addCellLabelValueVertical(tableTotaliRiga2, "Garanzia anni", "€ " + formatCurrency(speseImballo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Spese ritiro e dismessa", "€ " + formatCurrency(bollo));
+        addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", "€ " + formatCurrency(ritenuta));
         
         containerCell.addElement(tableTotaliRiga2);
         
