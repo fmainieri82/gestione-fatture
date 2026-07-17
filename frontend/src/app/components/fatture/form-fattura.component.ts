@@ -211,8 +211,8 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               <input matInput type="number" [(ngModel)]="fattura.speseIncasso" (change)="ricalcolaTotali()" step="0.01">
             </mat-form-field>
             <mat-form-field appearance="outline" class="form-field">
-              <mat-label>Garanzia anni (€)</mat-label>
-              <input matInput type="number" [(ngModel)]="fattura.speseImballo" (change)="ricalcolaTotali()" step="0.01">
+              <mat-label>Garanzia anni</mat-label>
+              <input matInput type="number" [(ngModel)]="fattura.speseImballo" min="0" step="1">
             </mat-form-field>
           </div>
           <div class="form-row">
@@ -708,12 +708,12 @@ export class FormFatturaComponent implements OnInit {
     const speseTrasporto = this.fattura.speseTrasporto || 0;
     const accontoVersato = this.fattura.accontoVersato || 0;
     const speseIncasso = this.fattura.speseIncasso || 0;
-    const speseImballo = this.fattura.speseImballo || 0;
     const bollo = this.fattura.bollo || 0;
     const ritenuta = this.fattura.ritenuta || 0;
     
-    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Consegna - Garanzia anni - Spese ritiro e dismessa - Ritenuta
-    return imponibileScontato + iva + speseTrasporto - accontoVersato - speseIncasso - speseImballo - bollo - ritenuta;
+    // Totale = Imponibile Scontato + IVA + Spese Trasporto - Acconto - Spese Consegna - Spese ritiro e dismessa - Ritenuta
+    // (Garanzia anni non è un importo e non entra nel totale)
+    return imponibileScontato + iva + speseTrasporto - accontoVersato - speseIncasso - bollo - ritenuta;
   }
 
   ricalcolaTotali() {
@@ -849,7 +849,7 @@ export class FormFatturaComponent implements OnInit {
       speseTrasporto: 0,
       accontoVersato: 0,
       speseIncasso: 0,
-      speseImballo: 0,
+      speseImballo: 1,
       bollo: 0,
       ritenuta: 0,
       modalitaSpedizione: '',

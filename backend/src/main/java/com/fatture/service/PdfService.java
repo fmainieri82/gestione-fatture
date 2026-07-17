@@ -718,13 +718,13 @@ public class PdfService {
         
         BigDecimal accontoVersato = fattura.getAccontoVersato() != null ? fattura.getAccontoVersato() : BigDecimal.ZERO;
         BigDecimal speseIncasso = fattura.getSpeseIncasso() != null ? fattura.getSpeseIncasso() : BigDecimal.ZERO;
-        BigDecimal speseImballo = fattura.getSpeseImballo() != null ? fattura.getSpeseImballo() : BigDecimal.ZERO;
         BigDecimal bollo = fattura.getBollo() != null ? fattura.getBollo() : BigDecimal.ZERO;
         BigDecimal ritenuta = fattura.getRitenuta() != null ? fattura.getRitenuta() : BigDecimal.ZERO;
         
         addCellLabelValueVertical(tableTotaliRiga2, "Acconto versato", "€ " + formatCurrency(accontoVersato));
         addCellLabelValueVertical(tableTotaliRiga2, "Spese consegna", "€ " + formatCurrency(speseIncasso));
-        addCellLabelValueVertical(tableTotaliRiga2, "Garanzia anni", "€ " + formatCurrency(speseImballo));
+        BigDecimal garanziaAnni = fattura.getSpeseImballo() != null ? fattura.getSpeseImballo() : BigDecimal.ONE;
+        addCellLabelValueVertical(tableTotaliRiga2, "Garanzia anni", garanziaAnni.stripTrailingZeros().toPlainString());
         addCellLabelValueVertical(tableTotaliRiga2, "Spese ritiro e dismessa", "€ " + formatCurrency(bollo));
         addCellLabelValueVertical(tableTotaliRiga2, "Ritenuta", "€ " + formatCurrency(ritenuta));
         

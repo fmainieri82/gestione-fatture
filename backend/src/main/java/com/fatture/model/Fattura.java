@@ -241,9 +241,6 @@ public class Fattura {
             if (speseIncasso != null && speseIncasso.compareTo(BigDecimal.ZERO) > 0) {
                 totale = totale.subtract(speseIncasso);
             }
-            if (speseImballo != null && speseImballo.compareTo(BigDecimal.ZERO) > 0) {
-                totale = totale.subtract(speseImballo);
-            }
             if (bollo != null && bollo.compareTo(BigDecimal.ZERO) > 0) {
                 totale = totale.subtract(bollo);
             }
@@ -266,7 +263,7 @@ public class Fattura {
         if (speseTrasporto == null) speseTrasporto = BigDecimal.ZERO;
         if (accontoVersato == null) accontoVersato = BigDecimal.ZERO;
         if (speseIncasso == null) speseIncasso = BigDecimal.ZERO;
-        if (speseImballo == null) speseImballo = BigDecimal.ZERO;
+        if (speseImballo == null) speseImballo = BigDecimal.ONE;
         if (bollo == null) bollo = BigDecimal.ZERO;
         if (ritenuta == null) ritenuta = BigDecimal.ZERO;
     }
