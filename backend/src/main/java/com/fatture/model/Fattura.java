@@ -205,8 +205,16 @@ public class Fattura {
         
         if (!voci.isEmpty()) {
             totaleRighe = voci.stream()
-                .filter(v -> v != null && v.getQuantita() != null && v.getPrezzoUnitario() != null)
-                .map(v -> v.getQuantita().multiply(v.getPrezzoUnitario()))
+                .filter(v -> v != null)
+                .map(v -> {
+                    if (v.getImporto() != null) {
+                        return v.getImporto();
+                    }
+                    if (v.getQuantita() != null && v.getPrezzoUnitario() != null) {
+                        return v.getQuantita().multiply(v.getPrezzoUnitario());
+                    }
+                    return BigDecimal.ZERO;
+                })
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
             
             if (totaleRighe == null) {

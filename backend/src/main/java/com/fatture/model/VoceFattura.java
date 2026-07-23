@@ -109,7 +109,9 @@ public class VoceFattura {
     @PrePersist
     @PreUpdate
     protected void calcolaImporto() {
-        if (quantita != null && prezzoUnitario != null) {
+        // Se l'importo è già valorizzato (anche se diverso da qtà × prezzo), lo rispetta.
+        // Lo calcola automaticamente solo se mancante.
+        if (importo == null && quantita != null && prezzoUnitario != null) {
             importo = quantita.multiply(prezzoUnitario)
                 .setScale(2, java.math.RoundingMode.HALF_UP);
         }

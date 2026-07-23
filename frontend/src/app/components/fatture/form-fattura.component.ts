@@ -142,11 +142,14 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
               <td>
                 <mat-form-field appearance="outline" class="prezzo-field">
                   <mat-label>Prezzo</mat-label>
-                  <input matInput type="number" [(ngModel)]="voce.prezzoUnitario" (change)="calcolaVoce(voce)">
+                  <input matInput type="number" [(ngModel)]="voce.prezzoUnitario" (change)="calcolaVoce(voce)" step="0.01">
                 </mat-form-field>
               </td>
-              <td class="totale-cell">
-                <strong>€ {{ calcolaImportoVoce(voce) | number:'1.2-2' }}</strong>
+              <td>
+                <mat-form-field appearance="outline" class="prezzo-field">
+                  <mat-label>Totale</mat-label>
+                  <input matInput type="number" [(ngModel)]="voce.importo" (change)="onImportoVoceChange(voce)" step="0.01">
+                </mat-form-field>
               </td>
               <td>
                 <div class="action-buttons-row">
@@ -480,11 +483,6 @@ import { SopralluogoDialogComponent } from './sopralluogo-dialog.component';
       width: 100%;
     }
     
-    .totale-cell {
-      padding-top: 20px;
-      font-size: 16px;
-    }
-    
     .totali-section {
       position: relative;
     }
@@ -668,6 +666,7 @@ export class FormFatturaComponent implements OnInit {
       descrizione: '',
       quantita: 1,
       prezzoUnitario: 0,
+      importo: 0,
       unitaMisura: 'Pz',
       note: ''
     });
@@ -679,16 +678,26 @@ export class FormFatturaComponent implements OnInit {
   }
 
   calcolaVoce(voce: VoceFattura) {
-    voce.importo = voce.quantita * voce.prezzoUnitario;
+    const q = Number(voce.quantita) || 0;
+    const p = Number(voce.prezzoUnitario) || 0;
+    voce.importo = Math.round(q * p * 100) / 100;
+    this.ricalcolaTotali();
+  }
+
+  onImportoVoceChange(voce: VoceFattura) {
+    voce.importo = Number(voce.importo) || 0;
     this.ricalcolaTotali();
   }
 
   calcolaImportoVoce(voce: VoceFattura): number {
-    return voce.quantita * voce.prezzoUnitario;
+    if (voce.importo != null && voce.importo !== undefined) {
+      return Number(voce.importo) || 0;
+    }
+    return (Number(voce.quantita) || 0) * (Number(voce.prezzoUnitario) || 0);
   }
 
   calcolaImponibile(): number {
-    return this.fattura.voci.reduce((sum, v) => sum + (v.quantita * v.prezzoUnitario), 0);
+    return this.fattura.voci.reduce((sum, v) => sum + this.calcolaImportoVoce(v), 0);
   }
 
   calcolaImponibileScontato(): number {
